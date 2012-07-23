@@ -1,0 +1,26 @@
+{
+  "name": "imagemagick-native",
+  "description": "ImageMagick's Magick++ bindings for NodeJS",
+  "keywords": ["imagemagick", "magick++", "resize", "convert"],
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mash/node-imagemagick-native.git"
+  },
+  "author": "Masakazu Ohtsuka <o.masakazu@gmail.com> (http://maaash.jp/)",
+  "contributors": [
+  ],
+  "main": "./index.js",
+  "scripts": {
+    "test": "node test/test.js",
+    "install": "node-gyp rebuild"
+  },
+  "engines": {
+    "node": "*"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "tap": "*"
+  }
+}
