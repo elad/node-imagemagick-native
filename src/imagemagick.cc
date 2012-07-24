@@ -44,8 +44,8 @@ Handle<Value> Convert(const Arguments& args) {
 
     Local<Value> resizeStyleValue = obj->Get( String::NewSymbol("resizeStyle") );
     const char* resizeStyle = "aspectfill";
+    String::AsciiValue resizeStyleAsciiValue( resizeStyleValue->ToString() );
     if ( ! resizeStyleValue->IsUndefined() ) {
-        String::AsciiValue resizeStyleAsciiValue( resizeStyleValue->ToString() );
         resizeStyle = *resizeStyleAsciiValue;
     }
     if (debug) printf( "resizeStyle: %s\n", resizeStyle );
