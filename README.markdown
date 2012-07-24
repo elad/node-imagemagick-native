@@ -43,6 +43,13 @@ The `options` argument can have following values:
 
 This library currently provide only this, please try [node-imagemagick](https://github.com/rsms/node-imagemagick/) if you want more.
 
+## Installation
+
+install [Imagemagick](http://www.imagemagick.org/) with headers before installing this module.
+
+    brew install imagemagick
+    sudo yum install ImageMagick-c++ ImageMagick-c++-devel
+
 ## Performance - simple thumbnail creation
 
     imagemagick:       34.58ms per iteration
