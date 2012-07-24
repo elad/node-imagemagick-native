@@ -1,5 +1,6 @@
 #include "imagemagick.h"
 #include <list>
+#include <string.h>
 
 // input
 //   args[ 0 ]: options. required, object with following key,values
