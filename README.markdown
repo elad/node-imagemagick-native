@@ -45,7 +45,8 @@ This library currently provide only this, please try [node-imagemagick](https://
 
 ## Installation
 
-install [Imagemagick](http://www.imagemagick.org/) with headers before installing this module.
+Install [Imagemagick](http://www.imagemagick.org/) with headers before installing this module.
+Tested with ImageMagick 6.7.7 on CentOS6 and MacOS10.7 .
 
     brew install imagemagick
     sudo yum install ImageMagick-c++ ImageMagick-c++-devel
