@@ -98,8 +98,7 @@ Handle<Value> Convert(const Arguments& args) {
             if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
             Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
 
-            Magick::Quantum q = MaxRGB;
-            Magick::Color transparent( q, q, q );
+            Magick::Color transparent( "white" );
             if ( strcmp( *format, "PNG" ) == 0 ) {
                 // make background transparent for PNG
                 // JPEG background becomes black if set transparent here
