@@ -50,6 +50,13 @@ Handle<Value> Convert(const Arguments& args) {
     }
     if (debug) printf( "resizeStyle: %s\n", resizeStyle );
 
+    Local<Value> formatValue = obj->Get( String::NewSymbol("format") );
+    String::AsciiValue format( formatValue->ToString() );
+    if ( ! formatValue->IsUndefined() ) {
+        if (debug) printf( "format: %s\n", *format );
+        image.magick( *format );
+    }
+
     if ( width || height ) {
         if ( ! width  ) { width  = image.columns(); }
         if ( ! height ) { height = image.rows();    }
@@ -87,9 +94,18 @@ Handle<Value> Convert(const Arguments& args) {
             Magick::Geometry resizeGeometry( resizewidth, resizeheight, 0, 0, 0, 0 );
             image.resize( resizeGeometry );
 
+            // limit canvas size to cropGeometry
             if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
             Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
-            image.extent( cropGeometry );
+
+            Magick::Quantum q = MaxRGB;
+            Magick::Color transparent( q, q, q );
+            if ( strcmp( *format, "PNG" ) == 0 ) {
+                // make background transparent for PNG
+                // JPEG background becomes black if set transparent here
+                transparent.alpha( 1. );
+            }
+            image.extent( cropGeometry, transparent );
         }
         else if ( strcmp ( resizeStyle, "aspectfit" ) == 0 ) {
             // keep aspect ratio, get the maximum image which fits inside specified size
@@ -116,18 +132,6 @@ Handle<Value> Convert(const Arguments& args) {
         if (debug) printf( "quality: %d\n", quality );
         image.quality( quality );
     }
-
-    Local<Value> formatValue = obj->Get( String::NewSymbol("format") );
-    if ( ! formatValue->IsUndefined() ) {
-        String::AsciiValue format( formatValue->ToString() );
-        if (debug) printf( "format: %s\n", *format );
-        image.magick( *format );
-    }
-
-    // make background white when converting transparent png to jpg
-    std::list<Magick::Image> imageList( 1, image );
-    Magick::flattenImages( &image, imageList.begin(), imageList.end() );
-    imageList.clear();
 
     Magick::Blob dstBlob;
     image.write( &dstBlob );

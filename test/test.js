@@ -3,6 +3,13 @@ var test        = require('tap').test
 ,   debug       = 0
 ;
 
+function saveToFileIfDebug (buffer, file) {
+    if (debug) {
+        require('fs').writeFileSync( file, buffer, 'binary' );
+        console.log( "wrote file: "+file );
+    }
+}
+
 test( 'invalid number of arguments', function (t) {
     var error = 0;
     try {
@@ -66,7 +73,7 @@ test( 'convert png -> png aspectfill', function (t) {
     });
     t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
     // t.equal( buffer.length, 9545, 'converted buffer size ok' );
-    if (debug) require('fs').writeFileSync( "./test/out.aspectfill.png", buffer, 'binary' );
+    saveToFileIfDebug( buffer, "./test/out.png-aspectfill.png" );
     t.end();
 });
 
@@ -81,7 +88,7 @@ test( 'convert png -> jpg aspectfill', function (t) {
     });
     t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
     // t.equal( buffer.length, 2295, 'converted buffer size ok' );
-    if (debug) require('fs').writeFileSync( "./test/out.aspectfill.jpg", buffer, 'binary' );
+    saveToFileIfDebug( buffer, "./test/out.png-aspectfill.jpg" );
     t.end();
 });
 
@@ -96,7 +103,7 @@ test( 'convert png.wide -> png.wide aspectfill', function (t) {
     });
     t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
     // t.equal( buffer.length, 9615, 'converted buffer size ok' );
-    if (debug) require('fs').writeFileSync( "./test/out.wide.aspectfill.png", buffer, 'binary' );
+    saveToFileIfDebug( buffer, "./test/out.wide.png-aspectfill.png" );
     t.end();
 });
 
@@ -112,7 +119,7 @@ test( 'convert jpg -> jpg fill', function (t) {
     });
     t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
     // t.equal( buffer.length, 3184, 'converted buffer size ok' );
-    if (debug) require('fs').writeFileSync( "./test/out.fill.jpg", buffer, 'binary' );
+    saveToFileIfDebug( buffer, "./test/out.jpg-fill.jpg" );
     t.end();
 });
 
@@ -128,6 +135,6 @@ test( 'convert jpg -> jpg aspectfit', function (t) {
     });
     t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
     // t.equal( buffer.length, 3012, 'converted buffer size ok' );
-    if (debug) require('fs').writeFileSync( "./test/out.aspectfit.jpg", buffer, 'binary' );
+    saveToFileIfDebug( buffer, "./test/out.jpg-aspectfit.jpg" );
     t.end();
 });
