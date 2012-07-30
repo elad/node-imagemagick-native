@@ -5,7 +5,8 @@
       "sources": [ "src/imagemagick.cc" ],
       "link_settings": {
         "libraries": [
-          "-lMagick++",
+          '<!@(Magick-config --ldflags)',
+          "-lMagick++"
         ],
       },
       "conditions": [
