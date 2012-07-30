@@ -15,6 +15,7 @@
 //              }
 Handle<Value> Convert(const Arguments& args) {
     HandleScope scope;
+    MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 0);
 
     if ( args.Length() != 1 ) {
         return THROW_ERROR_EXCEPTION("convert() requires 1 (option) argument!");
