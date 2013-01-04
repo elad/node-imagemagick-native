@@ -16,7 +16,7 @@ test( 'invalid number of arguments', function (t) {
         imagemagick.convert();
     } catch (e) {
         error = e;
-    };
+    }
 
     t.equal( error.name, 'Error' );
     t.equal( error.message, 'convert() requires 1 (option) argument!' );
@@ -37,7 +37,7 @@ test( 'invalid resizeStyle', function (t) {
         });
     } catch (e) {
         t.equal( e.message, 'resizeStyle not supported', 'err message' );
-    };
+    }
     t.equal( buffer, undefined, 'buffer undefined' );
     t.end();
 });
@@ -56,7 +56,7 @@ test( 'srcData is a Buffer', function (t) {
         });
     } catch (e) {
         t.equal( e.message, "convert()'s 1st argument should have \"srcData\" key with a Buffer instance" );
-    };
+    }
     t.equal( buffer, undefined, 'buffer undefined' );
     t.end();
 });
