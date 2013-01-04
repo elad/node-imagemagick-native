@@ -138,3 +138,24 @@ test( 'convert jpg -> jpg aspectfit', function (t) {
     saveToFileIfDebug( buffer, "./test/out.jpg-aspectfit.jpg" );
     t.end();
 });
+
+test( 'broken png', function (t) {
+    var srcData = require('fs').readFileSync( "./test/broken.png" )
+    , buffer;
+
+    try {
+        buffer = imagemagick.convert({
+            srcData: srcData,
+            width: 100,
+            height: 100,
+            resizeStyle: "aspectfit",
+            quality: 80,
+            format: 'JPEG',
+            // debug: debug
+        });
+    } catch (e) {
+        t.similar( e.message,
+                   new RegExp("image\\.read failed with error: Magick: CorruptImage") );
+    }
+    t.end();
+});

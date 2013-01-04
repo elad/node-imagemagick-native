@@ -1,6 +1,7 @@
 #include "imagemagick.h"
 #include <list>
-#include <string.h>
+#include <string>
+#include <exception>
 
 // input
 //   args[ 0 ]: options. required, object with following key,values
@@ -34,7 +35,21 @@ Handle<Value> Convert(const Arguments& args) {
     if (debug) printf( "debug: on\n" );
 
     Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
-    Magick::Image image( srcBlob );
+
+    Magick::Image image;
+    try {
+        image.read( srcBlob );
+    }
+    catch (std::exception& err) {
+        std::string message = "image.read failed with error: ";
+        message            += err.what();
+        return THROW_ERROR_EXCEPTION( message.c_str() );
+    }
+    catch (...) {
+        printf( "unhandled error" );
+        exit(1);
+    }
+
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
     unsigned int width = obj->Get( String::NewSymbol("width") )->Uint32Value();
