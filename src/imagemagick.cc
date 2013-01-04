@@ -1,6 +1,6 @@
 #include "imagemagick.h"
 #include <list>
-#include <string>
+#include <string.h>
 #include <exception>
 
 // input
