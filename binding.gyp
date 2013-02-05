@@ -7,8 +7,7 @@
       'cflags_cc!': [ '-fno-exceptions' ],
       "link_settings": {
         "libraries": [
-          '<!@(Magick-config --ldflags)',
-          "-lMagick++"
+          '<!@(Magick++-config --ldflags)',
         ],
       },
       "conditions": [
@@ -16,12 +15,12 @@
           'xcode_settings': {
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
             'OTHER_CFLAGS': [
-              '<!@(Magick-config --cflags)'
+              '<!@(Magick++-config --cflags)'
             ]
           }
         }, {
           'cflags': [
-            '<!@(Magick-config --cflags)'
+            '<!@(Magick++-config --cflags)'
           ],
         }]
       ]
