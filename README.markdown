@@ -53,8 +53,8 @@ Tested with ImageMagick 6.7.7 on CentOS6 and MacOS10.7 .
 
 ## Performance - simple thumbnail creation
 
-    imagemagick:       34.58ms per iteration
-    imagemagick-native: 2.49ms per iteration
+    imagemagick:       16.09ms per iteration
+    imagemagick-native: 0.89ms per iteration
 
 See `node test/benchmark.js` for details.
 
