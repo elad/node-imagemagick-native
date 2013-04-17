@@ -48,8 +48,16 @@ This library currently provide only this, please try [node-imagemagick](https://
 Install [Imagemagick](http://www.imagemagick.org/) with headers before installing this module.
 Tested with ImageMagick 6.7.7 on CentOS6 and MacOS10.7 .
 
-    brew install imagemagick
+    brew install imagemagick --build-from-source
+
+      or
+
     sudo yum install ImageMagick-c++ ImageMagick-c++-devel
+
+Make sure you can find Magick++-config in your PATH.
+Then:
+
+    npm install imagemagick-native
 
 ## Performance - simple thumbnail creation
 
