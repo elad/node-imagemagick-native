@@ -46,13 +46,17 @@ This library currently provide only this, please try [node-imagemagick](https://
 ## Installation
 
 Install [Imagemagick](http://www.imagemagick.org/) with headers before installing this module.
-Tested with ImageMagick 6.7.7 on CentOS6 and MacOS10.7 .
+Tested with ImageMagick 6.7.7 on CentOS6 and MacOS10.7, Ubuntu12.04 .
 
     brew install imagemagick --build-from-source
 
       or
 
     sudo yum install ImageMagick-c++ ImageMagick-c++-devel
+
+      or
+
+    sudo apt-get install libmagick++-dev
 
 Make sure you can find Magick++-config in your PATH.
 Then:

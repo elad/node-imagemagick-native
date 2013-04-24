@@ -20,7 +20,7 @@
           }
         }, {
           'cflags': [
-            '<!@(Magick++-config --cflags)'
+            '<!@(Magick++-config --cflags --cppflags)'
           ],
         }]
       ]
