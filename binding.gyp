@@ -7,7 +7,7 @@
       'cflags_cc!': [ '-fno-exceptions' ],
       "link_settings": {
         "libraries": [
-          '<!@(Magick++-config --ldflags)',
+          '<!@(Magick++-config --ldflags --libs)',
         ],
       },
       "conditions": [
