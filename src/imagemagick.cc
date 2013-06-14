@@ -1,4 +1,6 @@
+#define BUILDING_NODE_EXTENSION
 #include "imagemagick.h"
+#include <node.h>
 #include <list>
 #include <string.h>
 #include <exception>
@@ -43,11 +45,12 @@ Handle<Value> Convert(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION( message.c_str() );
+        ThrowException(Exception::TypeError(String::New(message.c_str())));
+        return scope.Close(Undefined());
     }
     catch (...) {
-        printf( "unhandled error" );
-        exit(1);
+        ThrowException(Exception::TypeError(String::New( "Unhandled error" )));
+        return scope.Close(Undefined());
     }
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
