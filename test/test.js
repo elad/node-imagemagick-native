@@ -155,7 +155,7 @@ test( 'broken png', function (t) {
         });
     } catch (e) {
         t.similar( e.message,
-                   new RegExp("CRC error") );
+                   new RegExp("CRC error|image\\.read failed with error: Magick:") );
     }
     t.end();
 });
