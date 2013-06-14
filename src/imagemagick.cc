@@ -7,6 +7,9 @@
 #include <string.h>
 #include <exception>
 
+#define THROW_ERROR_EXCEPTION(x) ThrowException(v8::Exception::Error(String::New(x))); \
+    scope.Close(Undefined())
+
 // input
 //   args[ 0 ]: options. required, object with following key,values
 //              {
@@ -47,12 +50,10 @@ Handle<Value> Convert(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        THROW_ERROR_EXCEPTION( message.c_str() );
-        return scope.Close(Undefined());
+        return THROW_ERROR_EXCEPTION(message.c_str());
     }
     catch (...) {
-        THROW_ERROR_EXCEPTION( "Unhandled error" );
-        return scope.Close(Undefined());
+        return THROW_ERROR_EXCEPTION("unhandled error");
     }
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
