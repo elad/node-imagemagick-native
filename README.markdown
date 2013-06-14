@@ -45,6 +45,8 @@ This library currently provide only this, please try [node-imagemagick](https://
 
 ## Installation
 
+### Linux / Mac
+
 Install [Imagemagick](http://www.imagemagick.org/) with headers before installing this module.
 Tested with ImageMagick 6.7.7 on CentOS6 and MacOS10.7, Ubuntu12.04 .
 
@@ -59,6 +61,24 @@ Tested with ImageMagick 6.7.7 on CentOS6 and MacOS10.7, Ubuntu12.04 .
     sudo apt-get install libmagick++-dev
 
 Make sure you can find Magick++-config in your PATH.
+Then:
+
+    npm install imagemagick-native
+
+### Windows
+
+Tested on Windows 7 x64.
+
+1. Install Python 2.7.3 only 2.7.3 nothing else works quite right!
+    
+    If you use Cygwin ensure you don't have Python installed in Cygwin setup as there will be some confusion about what version to use.
+
+2. Install [Visual Studio C++ 2010 Express](http://www.microsoft.com/en-us/download/details.aspx?id=8279)
+
+3. (64-bit only) [Install Windows 7 64-bit SDK](http://www.microsoft.com/en-us/download/details.aspx?id=8279)
+
+4. Install [Imagemagick dll binary x86](http://www.imagemagick.org/download/binaries/ImageMagick-6.8.5-10-Q16-x86-dll.exe) or [Imagemagick dll binary x64](http://www.imagemagick.org/download/binaries/ImageMagick-6.8.5-10-Q16-x64-dll.exe), check for libraries and includes during install.
+
 Then:
 
     npm install imagemagick-native
