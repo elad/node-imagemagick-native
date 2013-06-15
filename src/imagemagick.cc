@@ -47,11 +47,11 @@ Handle<Value> Convert(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        ThrowException(Exception::TypeError(String::New(message.c_str())));
+        THROW_ERROR_EXCEPTION( message.c_str() );
         return scope.Close(Undefined());
     }
     catch (...) {
-        ThrowException(Exception::TypeError(String::New( "Unhandled error" )));
+        THROW_ERROR_EXCEPTION( "Unhandled error" );
         return scope.Close(Undefined());
     }
 
