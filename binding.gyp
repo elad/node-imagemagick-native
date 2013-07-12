@@ -30,7 +30,7 @@
           ]
         }], ['OS=="win" and target_arch!="x64"', {
           'defines': [
-            'ssize_t',
+            '_SSIZE_T_',
           ]
         }], ['OS=="mac"', {
           'xcode_settings': {
