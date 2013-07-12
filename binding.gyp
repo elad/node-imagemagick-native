@@ -28,6 +28,10 @@
           'include_dirs': [
             '<(MAGICK_ROOT)/include',
           ]
+        }], ['OS=="win" and target_arch!="x64"', {
+          'defines': [
+            'ssize_t',
+          ]
         }], ['OS=="mac"', {
           'xcode_settings': {
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
