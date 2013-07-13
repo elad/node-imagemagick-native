@@ -1,9 +1,30 @@
 module.exports = function(grunt) {
   grunt.initConfig({
-    pkg: grunt.file.readJSON('package.json')
+    pkg: grunt.file.readJSON('package.json'),
+    clean: [ 'build' ]
   });
   grunt.loadNpmTasks('grunt-release');
-  grunt.registerTask('default', ['test']);
+  grunt.loadNpmTasks('grunt-contrib-clean');
+
+  grunt.registerTask('default', ['build', 'test', 'clean']);
+
+  grunt.registerTask('build', 'build', function() {
+    var done = this.async();
+    require('child_process').exec(
+      'npm install',
+      function(error, stdout, stderr) {
+        grunt.log.writeln(stdout);
+        grunt.log.verbose.writeln(stderr);
+        if (error) {
+          grunt.log.error(error);
+          done(false);
+        }
+        else {
+          done(true);
+        }
+      }
+    );
+  });
 
   grunt.registerTask('test', 'run tests', function() {
     var done = this.async();
@@ -27,7 +48,7 @@ module.exports = function(grunt) {
             return;
           }
           if (testsLine) {
-            grunt.log.oklns( "All " + testsLine[1] + " tests successful." );
+            grunt.log.oklns( "All " + testsLine[1] + " tests successful." ).ok();
           }
           done(true);
         }

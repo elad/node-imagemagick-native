@@ -26,6 +26,7 @@
   "devDependencies": {
     "tap": "*",
     "grunt": "~0.4.1",
-    "grunt-release": "~0.3.5"
+    "grunt-release": "~0.3.5",
+    "grunt-contrib-clean": "~0.4.1"
   }
 }
