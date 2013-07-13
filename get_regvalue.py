@@ -1,12 +1,14 @@
-import subprocess
+import _winreg
 
 def get_regvalue(regkey, regvalue):
-    cmd = ['reg.exe', 'query', regkey, '/v', regvalue]
-    
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    for line in p.communicate()[0].splitlines():
-        if regvalue in line:
-            data = line.split('    ')[3] + "\\"
-    return data
 
-print get_regvalue('HKEY_LOCAL_MACHINE\\SOFTWARE\\ImageMagick\\Current', "LibPath")
+    explorer = _winreg.OpenKey(
+        _winreg.HKEY_LOCAL_MACHINE,
+        regkey
+    )
+    
+    value, type = _winreg.QueryValueEx(explorer, regvalue)
+
+    return value
+
+print get_regvalue('SOFTWARE\\ImageMagick\\Current', 'LibPath')
