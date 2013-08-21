@@ -41,7 +41,22 @@ The `options` argument can have following values:
         debug:       optional. 1 or 0
     }
 
-This library currently provide only this, please try [node-imagemagick](https://github.com/rsms/node-imagemagick/) if you want more.
+### identify( srcData )
+
+Identify a buffer provided as `srcData` and return an object.
+
+The first argument is required and must be a Buffer with binary image data.
+
+The method returns an object similar to:
+
+    { 
+        format: 'JPEG', 
+        width: 3904, 
+        height: 2622, 
+        depth: 8 
+    }
+
+This library currently provide only these, please try [node-imagemagick](https://github.com/rsms/node-imagemagick/) if you want more.
 
 ## Installation
 
