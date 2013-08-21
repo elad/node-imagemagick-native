@@ -162,8 +162,62 @@ Handle<Value> Convert(const Arguments& args) {
     return scope.Close( retBuffer->handle_ );
 }
 
-void init(Handle<Object> target) {
-    NODE_SET_METHOD(target, "convert", Convert);
+// input
+//   args[ 0 ]: options. required, object with following key,values
+//              {
+//                  srcData:        required. Buffer with binary image data
+//                  debug:          optional. 1 or 0
+//              }
+Handle<Value> Identify(const Arguments& args) {
+    HandleScope scope;
+    MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
+
+    if ( args.Length() != 1 ) {
+        return THROW_ERROR_EXCEPTION("identify() requires 1 (option) argument!");
+    }
+    if ( ! args[ 0 ]->IsObject() ) {
+        return THROW_ERROR_EXCEPTION("identify()'s 1st argument should be an object");
+    }
+    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( String::NewSymbol("srcData") ) );
+    if ( srcData->IsUndefined() || ! node::Buffer::HasInstance(srcData) ) {
+        return THROW_ERROR_EXCEPTION("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    }
+
+    int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
+    if (debug) printf( "debug: on\n" );
+
+    Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
+
+    Magick::Image image;
+    try {
+        image.read( srcBlob );
+    }
+    catch (std::exception& err) {
+        std::string message = "image.read failed with error: ";
+        message            += err.what();
+        return THROW_ERROR_EXCEPTION(message.c_str());
+    }
+    catch (...) {
+        return THROW_ERROR_EXCEPTION("unhandled error");
+    }
+
+    if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
+
+    Handle<Object> out = Object::New();
+    
+    out->Set(String::NewSymbol("width"), Integer::New(image.columns()));
+    out->Set(String::NewSymbol("height"), Integer::New(image.rows()));
+    out->Set(String::NewSymbol("depth"), Integer::New(image.depth()));
+    out->Set(String::NewSymbol("format"), String::New(image.magick().c_str()));
+    
+    return out;
 }
 
-NODE_MODULE(imagemagick, init);
+void init(Handle<Object> target) {
+    target->Set(String::NewSymbol("convert"), FunctionTemplate::New(Convert)->GetFunction());
+    target->Set(String::NewSymbol("identify"), FunctionTemplate::New(Identify)->GetFunction());
+}
+
+NODE_MODULE(imagemagick, init); 
