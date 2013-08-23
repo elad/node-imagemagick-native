@@ -41,11 +41,16 @@ The `options` argument can have following values:
         debug:       optional. 1 or 0
     }
 
-### identify( srcData )
+### identify( options )
 
 Identify a buffer provided as `srcData` and return an object.
 
-The first argument is required and must be a Buffer with binary image data.
+The `options` argument can have following values:
+
+    {
+        srcData:     required. Buffer with binary image data
+        debug:       optional. 1 or 0
+    }
 
 The method returns an object similar to:
 
@@ -55,6 +60,41 @@ The method returns an object similar to:
         height: 2622, 
         depth: 8 
     }
+
+### quantizeColors( options )
+
+Quantize the image to a specified amount of colors from a buffer provided as `srcData` and return an array.
+
+The `options` argument can have following values:
+
+    {
+        srcData:     required. Buffer with binary image data
+        colors:      required. number of colors to extract, defaults to 5
+        debug:       optional. 1 or 0
+    }
+
+The method returns an array similar to:
+
+    [
+        { 
+            r: 83, 
+            g: 56, 
+            b: 35,
+            hex: '533823'
+        },
+        { 
+            r: 149, 
+            g: 110, 
+            b: 73,
+            hex: '956e49'
+        },
+        { 
+            r: 165, 
+            g: 141, 
+            b: 111,
+            hex: 'a58d6f
+        }
+    ]
 
 This library currently provide only these, please try [node-imagemagick](https://github.com/rsms/node-imagemagick/) if you want more.
 
