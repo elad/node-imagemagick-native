@@ -10,7 +10,7 @@ function saveToFileIfDebug (buffer, file) {
     }
 }
 
-test( 'invalid number of arguments', function (t) {
+test( 'convert invalid number of arguments', function (t) {
     var error = 0;
     try {
         imagemagick.convert();
@@ -23,7 +23,7 @@ test( 'invalid number of arguments', function (t) {
     t.end();
 });
 
-test( 'invalid resizeStyle', function (t) {
+test( 'convert invalid resizeStyle', function (t) {
     var buffer;
     try {
         buffer = imagemagick.convert({
@@ -42,7 +42,7 @@ test( 'invalid resizeStyle', function (t) {
     t.end();
 });
 
-test( 'srcData is a Buffer', function (t) {
+test( 'convert srcData is a Buffer', function (t) {
     var buffer;
     try {
         imagemagick.convert({
@@ -139,7 +139,7 @@ test( 'convert jpg -> jpg aspectfit', function (t) {
     t.end();
 });
 
-test( 'broken png', function (t) {
+test( 'convert broken png', function (t) {
     var srcData = require('fs').readFileSync( "./test/broken.png" )
     , buffer;
 
@@ -157,5 +157,42 @@ test( 'broken png', function (t) {
         t.similar( e.message,
                    new RegExp("CRC error|image\\.read failed with error: Magick:") );
     }
+    t.end();
+});
+
+test( 'identify invalid number of arguments', function (t) {
+    var error = 0;
+    try {
+        imagemagick.identify();
+    } catch (e) {
+        error = e;
+    }
+    
+    t.equal( error.name, 'Error' );
+    t.equal( error.message, 'identify() requires 1 (option) argument!' );
+    t.end();
+});
+
+test( 'identify srcData is a Buffer', function (t) {
+    var buffer;
+    try {
+        buffer = imagemagick.identify({
+            srcData: require('fs').readFileSync( "./test/test.png", 'binary' )
+        });
+    } catch (e) {
+        t.equal( e.message, "identify()'s 1st argument should have \"srcData\" key with a Buffer instance" );
+    }
+    t.equal( buffer, undefined, 'buffer undefined' );
+    t.end();
+});
+
+test( 'identify results', function (t) {
+    var results = imagemagick.identify({
+        srcData: require('fs').readFileSync( "./test/test.png" )
+    });
+    t.equal( results.width, 58, 'width is 58' );
+    t.equal( results.height, 66, 'height is 66' );
+    t.equal( results.depth, 8, 'depth is 8' );
+    t.equal( results.format, 'PNG', 'format is PNG' );
     t.end();
 });
