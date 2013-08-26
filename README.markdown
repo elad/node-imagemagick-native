@@ -2,6 +2,8 @@
 
 [Imagemagick](http://www.imagemagick.org/)'s [Magick++](http://www.imagemagick.org/Magick++/) binding for [Node](http://nodejs.org/).
 
+[![Build Status](https://travis-ci.org/mash/node-imagemagick-native.png)](https://travis-ci.org/mash/node-imagemagick-native)
+
 ## Example
 
     var imagemagick = require('imagemagick-native')
@@ -54,11 +56,11 @@ The `options` argument can have following values:
 
 The method returns an object similar to:
 
-    { 
-        format: 'JPEG', 
-        width: 3904, 
-        height: 2622, 
-        depth: 8 
+    {
+        format: 'JPEG',
+        width: 3904,
+        height: 2622,
+        depth: 8
     }
 
 ### quantizeColors( options )
@@ -76,21 +78,21 @@ The `options` argument can have following values:
 The method returns an array similar to:
 
     [
-        { 
-            r: 83, 
-            g: 56, 
+        {
+            r: 83,
+            g: 56,
             b: 35,
             hex: '533823'
         },
-        { 
-            r: 149, 
-            g: 110, 
+        {
+            r: 149,
+            g: 110,
             b: 73,
             hex: '956e49'
         },
-        { 
-            r: 165, 
-            g: 141, 
+        {
+            r: 165,
+            g: 141,
             b: 111,
             hex: 'a58d6f
         }
@@ -125,7 +127,7 @@ Then:
 Tested on Windows 7 x64.
 
 1. Install Python 2.7.3 only 2.7.3 nothing else works quite right!
-    
+
     If you use Cygwin ensure you don't have Python installed in Cygwin setup as there will be some confusion about what version to use.
 
 2. Install [Visual Studio C++ 2010 Express](http://www.microsoft.com/en-us/download/details.aspx?id=8279)
