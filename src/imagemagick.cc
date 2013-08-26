@@ -203,12 +203,12 @@ Handle<Value> Identify(const Arguments& args) {
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
     Handle<Object> out = Object::New();
-    
+
     out->Set(String::NewSymbol("width"), Integer::New(image.columns()));
     out->Set(String::NewSymbol("height"), Integer::New(image.rows()));
     out->Set(String::NewSymbol("depth"), Integer::New(image.depth()));
     out->Set(String::NewSymbol("format"), String::New(image.magick().c_str()));
-    
+
     return scope.Close( out );
 }
 
@@ -238,7 +238,7 @@ Handle<Value> QuantizeColors(const Arguments& args) {
 
     int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
-    
+
     Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
 
     Magick::Image image;
@@ -254,8 +254,8 @@ Handle<Value> QuantizeColors(const Arguments& args) {
         return THROW_ERROR_EXCEPTION("unhandled error");
     }
 
-    ssize_t rows = 196; ssize_t columns = 196; 
- 
+    ssize_t rows = 196; ssize_t columns = 196;
+
     if (debug) printf( "resize to: %d, %d\n", (int) rows, (int) columns );
     Magick::Geometry resizeGeometry( rows, columns, 0, 0, 0, 0 );
     image.resize( resizeGeometry );
@@ -264,22 +264,22 @@ Handle<Value> QuantizeColors(const Arguments& args) {
 
     image.quantizeColors(colorsCount + 1);
     image.quantize();
-    
+
     if (debug) printf("totalColors after: %d\n", (int) image.totalColors());
-    
+
     Magick::PixelPacket* pixels = image.getPixels(0, 0, image.columns(), image.rows());
-    
+
     Magick::PixelPacket* colors = new Magick::PixelPacket[colorsCount]();
     int index = 0;
-    
+
     for ( ssize_t x = 0; x < rows ; x++ ) {
         for ( ssize_t y = 0; y < columns ; y++ ) {
             Magick::PixelPacket pixel = pixels[rows * x + y];
-            
+
             bool found = false;
             for(int x = 0; x < colorsCount; x++)
                 if (pixel.red == colors[x].red && pixel.green == colors[x].green && pixel.blue == colors[x].blue) found = true;
-            
+
             if (!found) colors[index++] = pixel;
             if (index >= colorsCount) break;
         }
@@ -287,35 +287,35 @@ Handle<Value> QuantizeColors(const Arguments& args) {
     }
 
     Handle<Object> out = Array::New();
-    
+
     for(int x = 0; x < colorsCount; x++)
         if (debug) printf("found rgb : %d %d %d\n", ((int) colors[x].red) / 255, ((int) colors[x].green) / 255, ((int) colors[x].blue) / 255);
 
     for(int x = 0; x < colorsCount; x++) {
         Local<Object> color = Object::New();
-        
+
         int r = ((int) colors[x].red) / 255;
         if (r > 255) r = 255;
-        
+
         int g = ((int) colors[x].green) / 255;
         if (g > 255) g = 255;
-        
+
         int b = ((int) colors[x].blue) / 255;
         if (b > 255) b = 255;
-        
+
         color->Set(String::NewSymbol("r"), Integer::New(r));
         color->Set(String::NewSymbol("g"), Integer::New(g));
         color->Set(String::NewSymbol("b"), Integer::New(b));
-        
+
         char hexcol[16];
         snprintf(hexcol, sizeof hexcol, "%02x%02x%02x", r, g, b);
         color->Set(String::NewSymbol("hex"), String::New(hexcol));
-        
+
         out->Set(x, color);
     }
-            
+
     delete[] colors;
-    
+
     return scope.Close( out );
 }
 
@@ -325,4 +325,4 @@ void init(Handle<Object> target) {
     target->Set(String::NewSymbol("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
 }
 
-NODE_MODULE(imagemagick, init); 
+NODE_MODULE(imagemagick, init);
