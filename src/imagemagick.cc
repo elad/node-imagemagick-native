@@ -325,4 +325,6 @@ void init(Handle<Object> target) {
     target->Set(String::NewSymbol("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
 }
 
-NODE_MODULE(imagemagick, init);
+// There is no semi-colon after NODE_MODULE as it's not a function (see node.h).
+// see http://nodejs.org/api/addons.html
+NODE_MODULE(imagemagick, init)
