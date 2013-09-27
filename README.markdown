@@ -98,6 +98,19 @@ The method returns an array similar to:
         }
     ]
 
+### composite( options )
+
+Composite a buffer provided as `options.compositeData` on a buffer provided as `options.srcData` with gravity specified by `options.gravity` and return a Buffer.
+
+The `options` argument can have following values:
+
+    {
+        srcData:       required. Buffer with binary image data
+        compositeData: required. Buffer with binary image data
+        gravity:       optional. Can be one of "CenterGravity" "EastGravity" "ForgetGravity" "NorthEastGravity" "NorthGravity" "NorthWestGravity" "SouthEastGravity" "SouthGravity" "SouthWestGravity" "WestGravity"
+        debug:         optional. 1 or 0
+    }
+
 This library currently provide only these, please try [node-imagemagick](https://github.com/rsms/node-imagemagick/) if you want more.
 
 ## Installation
