@@ -270,3 +270,58 @@ test( 'quantizeColors results, 5 colors', function (t) {
     
     t.end();
 });
+
+test( 'composite invalid number of arguments', function (t) {
+    var error = 0;
+    try {
+        imagemagick.composite();
+    } catch (e) {
+        error = e;
+    }
+    
+    t.equal( error.name, 'Error' );
+    t.equal( error.message, 'composite() requires 1 (option) argument!' );
+    t.end();
+});
+
+test( 'composite srcData is a Buffer', function (t) {
+    var buffer;
+    try {
+        buffer = imagemagick.composite({
+            srcData: require('fs').readFileSync( "./test/test.png", 'binary' )
+        });
+    } catch (e) {
+        t.equal( e.message, "composite()'s 1st argument should have \"srcData\" key with a Buffer instance" );
+    }
+    t.equal( buffer, undefined, 'buffer undefined' );
+    t.end();
+});
+
+test( 'composite compositeData is a Buffer', function (t) {
+    var buffer;
+    try {
+        buffer = imagemagick.composite({
+            srcData: require('fs').readFileSync( "./test/test.quantizeColors.png" ),
+            compositeData: require('fs').readFileSync("./test/test.png","binary")
+        });
+    } catch (e) {
+        t.equal( e.message, "composite()'s 1st argument should have \"compositeData\" key with a Buffer instance" );
+    }
+    t.equal( buffer, undefined, 'buffer undefined' );
+    t.end();
+});
+
+test( 'composite image not source image',function(t) {
+
+	var srcData = require('fs').readFileSync( "./test/test.quantizeColors.png" );
+	var compositeData = require('fs').readFileSync( "./test/test.png" );
+
+    var buffer = imagemagick.composite({
+            srcData: srcData,
+            compositeData: compositeData,
+            gravity: "SouthEastGravity"
+        });
+
+    t.notSame( buffer,srcData );
+    t.end();
+});
