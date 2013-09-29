@@ -323,11 +323,11 @@ Handle<Value> QuantizeColors(const Arguments& args) {
 //   args[ 0 ]: options. required, object with following key,values
 //              {
 //                  srcData:        required. Buffer with binary image data
-//					compositeData:  required. Buffer with image to composite
-//					gravity:		optional. One of CenterGravity EastGravity
-//									ForgetGravity NorthEastGravity NorthGravity
-//									NorthWestGravity SouthEastGravity SouthGravity
-//									SouthWestGravity WestGravity
+//                  compositeData:  required. Buffer with image to composite
+//                  gravity:        optional. One of CenterGravity EastGravity
+//                                  ForgetGravity NorthEastGravity NorthGravity
+//                                  NorthWestGravity SouthEastGravity SouthGravity
+//                                  SouthWestGravity WestGravity
 //                  debug:          optional. 1 or 0
 //              }
 Handle<Value> Composite(const Arguments& args) {
@@ -374,19 +374,19 @@ Handle<Value> Composite(const Arguments& args) {
     Local<Value> gravityValue = obj->Get( String::NewSymbol("gravity") );
     String::AsciiValue gravity( gravityValue->ToString() );
 
-    if(strcmp("CenterGravity",*gravity)==0) gravityType=Magick::CenterGravity;
-    else if(strcmp("EastGravity",*gravity)==0) gravityType=Magick::EastGravity;
-    else if(strcmp("ForgetGravity",*gravity)==0) gravityType=Magick::ForgetGravity;
+    if(strcmp("CenterGravity",*gravity)==0)         gravityType=Magick::CenterGravity;
+    else if(strcmp("EastGravity",*gravity)==0)      gravityType=Magick::EastGravity;
+    else if(strcmp("ForgetGravity",*gravity)==0)    gravityType=Magick::ForgetGravity;
     else if(strcmp("NorthEastGravity",*gravity)==0) gravityType=Magick::NorthEastGravity;
-    else if(strcmp("NorthGravity",*gravity)==0) gravityType=Magick::NorthGravity;
+    else if(strcmp("NorthGravity",*gravity)==0)     gravityType=Magick::NorthGravity;
     else if(strcmp("NorthWestGravity",*gravity)==0) gravityType=Magick::NorthWestGravity;
     else if(strcmp("SouthEastGravity",*gravity)==0) gravityType=Magick::SouthEastGravity;
-    else if(strcmp("SouthGravity",*gravity)==0) gravityType=Magick::SouthGravity;
+    else if(strcmp("SouthGravity",*gravity)==0)     gravityType=Magick::SouthGravity;
     else if(strcmp("SouthWestGravity",*gravity)==0) gravityType=Magick::SouthWestGravity;
-    else if(strcmp("WestGravity",*gravity)==0) gravityType=Magick::WestGravity;
+    else if(strcmp("WestGravity",*gravity)==0)      gravityType=Magick::WestGravity;
     else {
-    	gravityType = Magick::ForgetGravity;
-    	if (debug) printf( "invalid gravity: '%s' fell through to ForgetGravity\n",*gravity);
+        gravityType = Magick::ForgetGravity;
+        if (debug) printf( "invalid gravity: '%s' fell through to ForgetGravity\n",*gravity);
     }
 
     if (debug) printf( "gravity: %s (%d)\n",*gravity,(int) gravityType);
@@ -407,12 +407,11 @@ Handle<Value> Composite(const Arguments& args) {
     image.composite(compositeImage,gravityType,Magick::OverCompositeOp);
 
     Magick::Blob dstBlob;
-	image.write( &dstBlob );
+    image.write( &dstBlob );
 
-	node::Buffer* retBuffer = node::Buffer::New( dstBlob.length() );
-	memcpy( node::Buffer::Data( retBuffer->handle_ ), dstBlob.data(), dstBlob.length() );
-	return scope.Close( retBuffer->handle_ );
-
+    node::Buffer* retBuffer = node::Buffer::New( dstBlob.length() );
+    memcpy( node::Buffer::Data( retBuffer->handle_ ), dstBlob.data(), dstBlob.length() );
+    return scope.Close( retBuffer->handle_ );
 }
 
 void init(Handle<Object> target) {
