@@ -319,10 +319,107 @@ Handle<Value> QuantizeColors(const Arguments& args) {
     return scope.Close( out );
 }
 
+// input
+//   args[ 0 ]: options. required, object with following key,values
+//              {
+//                  srcData:        required. Buffer with binary image data
+//					compositeData:  required. Buffer with image to composite
+//					gravity:		optional. One of CenterGravity EastGravity
+//									ForgetGravity NorthEastGravity NorthGravity
+//									NorthWestGravity SouthEastGravity SouthGravity
+//									SouthWestGravity WestGravity
+//                  debug:          optional. 1 or 0
+//              }
+Handle<Value> Composite(const Arguments& args) {
+    HandleScope scope;
+    MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
+
+    if ( args.Length() != 1 ) {
+        return THROW_ERROR_EXCEPTION("composite() requires 1 (option) argument!");
+    }
+    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( String::NewSymbol("srcData") ) );
+    if ( srcData->IsUndefined() || ! node::Buffer::HasInstance(srcData) ) {
+        return THROW_ERROR_EXCEPTION("composite()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    }
+
+    Local<Object> compositeData = Local<Object>::Cast( obj->Get( String::NewSymbol("compositeData") ) );
+    if ( compositeData->IsUndefined() || ! node::Buffer::HasInstance(compositeData) ) {
+        return THROW_ERROR_EXCEPTION("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
+    }
+
+
+    int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
+    if (debug) printf( "debug: on\n" );
+
+    Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
+    Magick::Blob compositeBlob( node::Buffer::Data(compositeData), node::Buffer::Length(compositeData) );
+
+    Magick::Image image;
+    try {
+        image.read( srcBlob );
+    }
+    catch (std::exception& err) {
+        std::string message = "image.read failed with error: ";
+        message            += err.what();
+        return THROW_ERROR_EXCEPTION(message.c_str());
+    }
+    catch (...) {
+        return THROW_ERROR_EXCEPTION("unhandled error");
+    }
+
+    Magick::GravityType gravityType;
+
+    Local<Value> gravityValue = obj->Get( String::NewSymbol("gravity") );
+    String::AsciiValue gravity( gravityValue->ToString() );
+
+    if(strcmp("CenterGravity",*gravity)==0) gravityType=Magick::CenterGravity;
+    else if(strcmp("EastGravity",*gravity)==0) gravityType=Magick::EastGravity;
+    else if(strcmp("ForgetGravity",*gravity)==0) gravityType=Magick::ForgetGravity;
+    else if(strcmp("NorthEastGravity",*gravity)==0) gravityType=Magick::NorthEastGravity;
+    else if(strcmp("NorthGravity",*gravity)==0) gravityType=Magick::NorthGravity;
+    else if(strcmp("NorthWestGravity",*gravity)==0) gravityType=Magick::NorthWestGravity;
+    else if(strcmp("SouthEastGravity",*gravity)==0) gravityType=Magick::SouthEastGravity;
+    else if(strcmp("SouthGravity",*gravity)==0) gravityType=Magick::SouthGravity;
+    else if(strcmp("SouthWestGravity",*gravity)==0) gravityType=Magick::SouthWestGravity;
+    else if(strcmp("WestGravity",*gravity)==0) gravityType=Magick::WestGravity;
+    else {
+    	gravityType = Magick::ForgetGravity;
+    	if (debug) printf( "invalid gravity: '%s' fell through to ForgetGravity\n",*gravity);
+    }
+
+    if (debug) printf( "gravity: %s (%d)\n",*gravity,(int) gravityType);
+
+    Magick::Image compositeImage;
+        try {
+            compositeImage.read( compositeBlob );
+        }
+        catch (std::exception& err) {
+            std::string message = "compositeImage.read failed with error: ";
+            message            += err.what();
+            return THROW_ERROR_EXCEPTION(message.c_str());
+        }
+        catch (...) {
+            return THROW_ERROR_EXCEPTION("unhandled error");
+        }
+
+    image.composite(compositeImage,gravityType,Magick::OverCompositeOp);
+
+    Magick::Blob dstBlob;
+	image.write( &dstBlob );
+
+	node::Buffer* retBuffer = node::Buffer::New( dstBlob.length() );
+	memcpy( node::Buffer::Data( retBuffer->handle_ ), dstBlob.data(), dstBlob.length() );
+	return scope.Close( retBuffer->handle_ );
+
+}
+
 void init(Handle<Object> target) {
     target->Set(String::NewSymbol("convert"), FunctionTemplate::New(Convert)->GetFunction());
     target->Set(String::NewSymbol("identify"), FunctionTemplate::New(Identify)->GetFunction());
     target->Set(String::NewSymbol("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
+    target->Set(String::NewSymbol("composite"), FunctionTemplate::New(Composite)->GetFunction());
 }
 
 // There is no semi-colon after NODE_MODULE as it's not a function (see node.h).
