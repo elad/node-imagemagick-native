@@ -3,7 +3,7 @@ module.exports = function(grunt) {
     pkg: grunt.file.readJSON('package.json'),
     clean: [ 'build' ]
   });
-  grunt.loadNpmTasks('grunt-release');
+  grunt.loadNpmTasks('grunt-release'); // dry run: grunt --no-write -v release
   grunt.loadNpmTasks('grunt-contrib-clean');
 
   grunt.registerTask('default', ['build', 'test', 'clean']);
