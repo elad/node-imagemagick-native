@@ -19,6 +19,7 @@
 //                  height:      optional. px.
 //                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
 //                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
+//                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
 //                  debug:       optional. 1 or 0
 //              }
 Handle<Value> Convert(const Arguments& args) {
@@ -40,6 +41,12 @@ Handle<Value> Convert(const Arguments& args) {
 
     int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
+
+    unsigned int maxMemory = obj->Get( String::NewSymbol("maxMemory") )->Uint32Value();
+    if (maxMemory > 0) {
+        MagickCore::SetMagickResourceLimit(MagickCore::MemoryResource, maxMemory);
+        if (debug) printf( "maxMemory set to: %d\n", maxMemory );
+    }
 
     Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
 
