@@ -7,7 +7,7 @@
     "resize",
     "convert"
   ],
-  "version": "0.2.7",
+  "version": "0.2.8",
   "repository": {
     "type": "git",
     "url": "git://github.com/mash/node-imagemagick-native.git"
