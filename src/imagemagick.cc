@@ -10,6 +10,46 @@
 #define THROW_ERROR_EXCEPTION(x) ThrowException(v8::Exception::Error(String::New(x))); \
     scope.Close(Undefined())
 
+// RAII to reset image magick's resource limit
+class LocalResourceLimiter
+{
+public:
+    LocalResourceLimiter()
+      : originalMemory(0),
+        memoryLimited(0),
+        originalDisk(0),
+        diskLimited(0) {
+    }
+    ~LocalResourceLimiter() {
+        if (memoryLimited) {
+            MagickCore::SetMagickResourceLimit(MagickCore::MemoryResource,originalMemory);
+        }
+        if (diskLimited) {
+            MagickCore::SetMagickResourceLimit(MagickCore::DiskResource,originalDisk);
+        }
+    }
+    void LimitMemory(MagickCore::MagickSizeType to) {
+        if ( ! memoryLimited ) {
+            memoryLimited  = true;
+            originalMemory = MagickCore::GetMagickResourceLimit(MagickCore::MemoryResource);
+        }
+        MagickCore::SetMagickResourceLimit(MagickCore::MemoryResource, to);
+    }
+    void LimitDisk(MagickCore::MagickSizeType to) {
+        if ( ! diskLimited ) {
+            diskLimited  = true;
+            originalDisk = MagickCore::GetMagickResourceLimit(MagickCore::DiskResource);
+        }
+        MagickCore::SetMagickResourceLimit(MagickCore::DiskResource,   to);
+    }
+
+private:
+    MagickCore::MagickSizeType originalMemory;
+    bool memoryLimited;
+    MagickCore::MagickSizeType originalDisk;
+    bool diskLimited;
+};
+
 // input
 //   args[ 0 ]: options. required, object with following key,values
 //              {
@@ -25,6 +65,7 @@
 Handle<Value> Convert(const Arguments& args) {
     HandleScope scope;
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
+    LocalResourceLimiter limiter;
 
     if ( args.Length() != 1 ) {
         return THROW_ERROR_EXCEPTION("convert() requires 1 (option) argument!");
@@ -44,7 +85,8 @@ Handle<Value> Convert(const Arguments& args) {
 
     unsigned int maxMemory = obj->Get( String::NewSymbol("maxMemory") )->Uint32Value();
     if (maxMemory > 0) {
-        MagickCore::SetMagickResourceLimit(MagickCore::MemoryResource, maxMemory);
+        limiter.LimitMemory(maxMemory);
+        limiter.LimitDisk(maxMemory); // avoid using unlimited disk as cache
         if (debug) printf( "maxMemory set to: %d\n", maxMemory );
     }
 
@@ -121,7 +163,17 @@ Handle<Value> Convert(const Arguments& args) {
 
             if (debug) printf( "resize to: %d, %d\n", resizewidth, resizeheight );
             Magick::Geometry resizeGeometry( resizewidth, resizeheight, 0, 0, 0, 0 );
-            image.resize( resizeGeometry );
+            try {
+                image.resize( resizeGeometry );
+            }
+            catch (std::exception& err) {
+                std::string message = "image.resize failed with error: ";
+                message            += err.what();
+                return THROW_ERROR_EXCEPTION(message.c_str());
+            }
+            catch (...) {
+                return THROW_ERROR_EXCEPTION("unhandled error");
+            }
 
             // limit canvas size to cropGeometry
             if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
@@ -140,14 +192,36 @@ Handle<Value> Convert(const Arguments& args) {
             char geometryString[ 32 ];
             sprintf( geometryString, "%dx%d", width, height );
             if (debug) printf( "resize to: %s\n", geometryString );
-            image.resize( geometryString );
+
+            try {
+                image.resize( geometryString );
+            }
+            catch (std::exception& err) {
+                std::string message = "image.resize failed with error: ";
+                message            += err.what();
+                return THROW_ERROR_EXCEPTION(message.c_str());
+            }
+            catch (...) {
+                return THROW_ERROR_EXCEPTION("unhandled error");
+            }
         }
         else if ( strcmp ( resizeStyle, "fill" ) == 0 ) {
             // change aspect ratio and fill specified size
             char geometryString[ 32 ];
             sprintf( geometryString, "%dx%d!", width, height );
             if (debug) printf( "resize to: %s\n", geometryString );
-            image.resize( geometryString );
+
+            try {
+                image.resize( geometryString );
+            }
+            catch (std::exception& err) {
+                std::string message = "image.resize failed with error: ";
+                message            += err.what();
+                return THROW_ERROR_EXCEPTION(message.c_str());
+            }
+            catch (...) {
+                return THROW_ERROR_EXCEPTION("unhandled error");
+            }
         }
         else {
             return THROW_ERROR_EXCEPTION("resizeStyle not supported");

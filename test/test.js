@@ -173,15 +173,15 @@ test( 'convert too wide jpg', function (t) {
             resizeStyle: "aspectfill",
             quality: 80,
             format: 'JPEG',
-            maxMemory: 1000,
+            maxMemory: 100 * 1000, // 100kB
             debug: debug
         });
     } catch (e) {
         seenError = 1;
-        console.log(e);
-        // t.similar( e.message,
-        //            new RegExp("CRC error|image\\.read failed with error: Magick:") );
+        t.similar( e.message,
+                   new RegExp("cache resources exhausted") );
     }
+    saveToFileIfDebug( buffer, "./test/out.jpg-maxmemory.jpg" );
     t.equal( seenError, 1 );
     t.end();
 });
