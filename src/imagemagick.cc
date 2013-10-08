@@ -495,11 +495,20 @@ Handle<Value> Composite(const Arguments& args) {
     return scope.Close( retBuffer->handle_ );
 }
 
+Handle<Value> Version(const Arguments& args) {
+    HandleScope scope;
+
+    Handle<String> out = String::New( MagickLibVersionText );
+
+    return scope.Close( out );
+}
+
 void init(Handle<Object> target) {
     target->Set(String::NewSymbol("convert"), FunctionTemplate::New(Convert)->GetFunction());
     target->Set(String::NewSymbol("identify"), FunctionTemplate::New(Identify)->GetFunction());
     target->Set(String::NewSymbol("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
     target->Set(String::NewSymbol("composite"), FunctionTemplate::New(Composite)->GetFunction());
+    target->Set(String::NewSymbol("version"), FunctionTemplate::New(Version)->GetFunction());
 }
 
 // There is no semi-colon after NODE_MODULE as it's not a function (see node.h).
