@@ -40,6 +40,7 @@ The `options` argument can have following values:
                      aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
                      fill:       forget aspect ratio, get the exact provided size
         format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
+        rotate:      optional. degrees.
         debug:       optional. 1 or 0
     }
 

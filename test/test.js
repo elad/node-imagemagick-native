@@ -191,6 +191,32 @@ if (versions[1] > 6) {
     });
 }
 
+test( 'convert to rotate 90 degrees', function (t) {
+  var buffer = imagemagick.convert({
+    srcData: require('fs').readFileSync( "./test/test.jpg" ),
+    rotate: 90,
+    debug: debug
+  });
+  var info = imagemagick.identify({srcData: buffer });
+  t.equal( info.width, 66 );
+  t.equal( info.height, 58 );
+  saveToFileIfDebug( buffer, "./test/out.jpg-rotate90.jpg" );
+  t.end();
+});
+
+test( 'convert to rotate -90 degrees', function (t) {
+  var buffer = imagemagick.convert({
+    srcData: require('fs').readFileSync( "./test/test.jpg" ),
+    rotate: -90,
+    debug: debug
+  });
+  var info = imagemagick.identify({srcData: buffer });
+  t.equal( info.width, 66 );
+  t.equal( info.height, 58 );
+  saveToFileIfDebug( buffer, "./test/out.jpg-rotate-90.jpg" );
+  t.end();
+});
+
 test( 'identify invalid number of arguments', function (t) {
     var error = 0;
     try {

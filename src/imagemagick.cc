@@ -235,6 +235,12 @@ Handle<Value> Convert(const Arguments& args) {
         image.quality( quality );
     }
 
+    int rotate = obj->Get( String::NewSymbol("rotate") )->Int32Value();
+    if ( rotate ) {
+        if (debug) printf( "rotate: %d\n", rotate );
+        image.rotate(rotate);
+    }
+
     Magick::Blob dstBlob;
     image.write( &dstBlob );
 
