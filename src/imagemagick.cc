@@ -103,7 +103,8 @@ Handle<Value> Convert(const Arguments& args) {
         message            += err.what();
         
         std::string warn ("warn");
-        std::size_t found = err.what().find(warn);
+        std::string what (err.what());
+        std::size_t found = what.find(warn);
         if (ignoreWarnings && found != std::string::npos) {
             if (debug) printf("warning: %s\n", message.c_str());
         } else {
