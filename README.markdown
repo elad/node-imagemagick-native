@@ -30,18 +30,19 @@ Convert a buffer provided as `options.srcData` and return a Buffer.
 The `options` argument can have following values:
 
     {
-        srcData:     required. Buffer with binary image data
-        quality:     optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
-        width:       optional. px.
-        height:      optional. px.
-        resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
-                     aspectfill: keep aspect ratio, get the exact provided size,
+        srcData:        required. Buffer with binary image data
+        quality:        optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
+        width:          optional. px.
+        height:         optional. px.
+        resizeStyle:    optional. default: "aspectfill". can be "aspectfit", "fill"
+                        aspectfill: keep aspect ratio, get the exact provided size,
                                  crop top/bottom or left/right if necessary
-                     aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
-                     fill:       forget aspect ratio, get the exact provided size
-        format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
-        rotate:      optional. degrees.
-        debug:       optional. 1 or 0
+                        aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
+                        fill:       forget aspect ratio, get the exact provided size
+        format:         optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
+        rotate:         optional. degrees.
+        debug:          optional. 1 or 0.
+        ignoreWarnings: optional. 1 or 0
     }
 
 ### identify( options )
