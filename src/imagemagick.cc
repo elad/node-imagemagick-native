@@ -84,6 +84,7 @@ Handle<Value> Convert(const Arguments& args) {
     int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
     int ignoreWarnings = obj->Get( String::NewSymbol("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
+    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
     unsigned int maxMemory = obj->Get( String::NewSymbol("maxMemory") )->Uint32Value();
     if (maxMemory > 0) {
@@ -105,9 +106,6 @@ Handle<Value> Convert(const Arguments& args) {
         std::string warn ("warn");
         std::string what (err.what());
         std::size_t found = what.find(warn);
-        printf("warning: %s\n", warn.c_str());
-        printf("warning: %s\n", what.c_str());
-        printf("warning: %d\n", found);
         if (ignoreWarnings && found != std::string::npos) {
             if (debug) printf("warning: %s\n", message.c_str());
         } else {
@@ -182,7 +180,15 @@ Handle<Value> Convert(const Arguments& args) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                return THROW_ERROR_EXCEPTION(message.c_str());
+
+                std::string warn ("warn");
+                std::string what (err.what());
+                std::size_t found = what.find(warn);
+                if (ignoreWarnings && found != std::string::npos) {
+                    if (debug) printf("warning: %s\n", message.c_str());
+                } else {
+                    return THROW_ERROR_EXCEPTION(message.c_str());
+                }
             }
             catch (...) {
                 return THROW_ERROR_EXCEPTION("unhandled error");
