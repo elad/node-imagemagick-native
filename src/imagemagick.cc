@@ -53,14 +53,15 @@ private:
 // input
 //   args[ 0 ]: options. required, object with following key,values
 //              {
-//                  srcData:     required. Buffer with binary image data
-//                  quality:     optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
-//                  width:       optional. px.
-//                  height:      optional. px.
-//                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
-//                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
-//                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
-//                  debug:       optional. 1 or 0
+//                  srcData:        required. Buffer with binary image data
+//                  quality:        optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
+//                  width:          optional. px.
+//                  height:         optional. px.
+//                  resizeStyle:    optional. default: "aspectfill". can be "aspectfit", "fill"
+//                  format:         optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
+//                  maxMemory:      optional. set the maximum width * height of an image that can reside in the pixel cache memory.
+//                  debug:          optional. 1 or 0
+//                  ignoreWarnings: optional. 1 or 0
 //              }
 Handle<Value> Convert(const Arguments& args) {
     HandleScope scope;
@@ -81,6 +82,7 @@ Handle<Value> Convert(const Arguments& args) {
     }
 
     int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( String::NewSymbol("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
 
     unsigned int maxMemory = obj->Get( String::NewSymbol("maxMemory") )->Uint32Value();
@@ -99,7 +101,14 @@ Handle<Value> Convert(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+        
+        std::string warn ("warn");
+        std::size_t found = err.what().find(warn);
+        if (ignoreWarnings && found != std::string::npos) {
+            if (debug) printf("warning: %s\n", message.c_str());
+        } else {
+            return THROW_ERROR_EXCEPTION(message.c_str());
+        }
     }
     catch (...) {
         return THROW_ERROR_EXCEPTION("unhandled error");
