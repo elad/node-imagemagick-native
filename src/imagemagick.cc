@@ -289,7 +289,9 @@ Handle<Value> Identify(const Arguments& args) {
     }
 
     int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( String::NewSymbol("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
+    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
     Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
 
@@ -300,7 +302,15 @@ Handle<Value> Identify(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+
+        std::string warn ("warn");
+        std::string what (err.what());
+        std::size_t found = what.find(warn);
+        if (ignoreWarnings && found != std::string::npos) {
+            if (debug) printf("warning: %s\n", message.c_str());
+        } else {
+            return THROW_ERROR_EXCEPTION(message.c_str());
+        }
     }
     catch (...) {
         return THROW_ERROR_EXCEPTION("unhandled error");
@@ -343,7 +353,9 @@ Handle<Value> QuantizeColors(const Arguments& args) {
     if (!colorsCount) colorsCount = 5;
 
     int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( String::NewSymbol("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
+    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
     Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
 
@@ -354,7 +366,15 @@ Handle<Value> QuantizeColors(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+
+        std::string warn ("warn");
+        std::string what (err.what());
+        std::size_t found = what.find(warn);
+        if (ignoreWarnings && found != std::string::npos) {
+            if (debug) printf("warning: %s\n", message.c_str());
+        } else {
+            return THROW_ERROR_EXCEPTION(message.c_str());
+        }
     }
     catch (...) {
         return THROW_ERROR_EXCEPTION("unhandled error");
@@ -457,7 +477,9 @@ Handle<Value> Composite(const Arguments& args) {
 
 
     int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( String::NewSymbol("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
+    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
     Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
     Magick::Blob compositeBlob( node::Buffer::Data(compositeData), node::Buffer::Length(compositeData) );
@@ -469,7 +491,15 @@ Handle<Value> Composite(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+
+        std::string warn ("warn");
+        std::string what (err.what());
+        std::size_t found = what.find(warn);
+        if (ignoreWarnings && found != std::string::npos) {
+            if (debug) printf("warning: %s\n", message.c_str());
+        } else {
+            return THROW_ERROR_EXCEPTION(message.c_str());
+        }
     }
     catch (...) {
         return THROW_ERROR_EXCEPTION("unhandled error");
