@@ -2,6 +2,10 @@
 #define BUILDING_NODE_EXTENSION
 #endif  // BUILDING_NODE_EXTENSION
 
+#if _MSC_VER
+#define snprintf _snprintf
+#endif
+
 #include "imagemagick.h"
 #include <list>
 #include <string.h>
