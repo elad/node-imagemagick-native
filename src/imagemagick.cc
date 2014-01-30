@@ -11,8 +11,13 @@
 #include <string.h>
 #include <exception>
 
-#define THROW_ERROR_EXCEPTION(x) ThrowException(v8::Exception::Error(String::New(x))); \
-    scope.Close(Undefined())
+#if NODE_MODULE_VERSION >= 0x000C
+#define THROW_ERROR_EXCEPTION(x) isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, x))); \
+    return;
+#else
+#define THROW_ERROR_EXCEPTION(x) return ThrowException(v8::Exception::Error(String::New(x))); \
+    scope.Close(Undefined());
+#endif
 
 // RAII to reset image magick's resource limit
 class LocalResourceLimiter
@@ -66,22 +71,28 @@ private:
 //                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
 //                  debug:       optional. 1 or 0
 //              }
-Handle<Value> Convert(const Arguments& args) {
+#if NODE_MODULE_VERSION >= 14
+void Convert(const FunctionCallbackInfo<Value>& args) {
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+#else
+static Handle<Value> Convert(const Arguments& args) {
     HandleScope scope;
+#endif
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
     LocalResourceLimiter limiter;
 
     if ( args.Length() != 1 ) {
-        return THROW_ERROR_EXCEPTION("convert() requires 1 (option) argument!");
+        THROW_ERROR_EXCEPTION("convert() requires 1 (option) argument!");
     }
     if ( ! args[ 0 ]->IsObject() ) {
-        return THROW_ERROR_EXCEPTION("convert()'s 1st argument should be an object");
+        THROW_ERROR_EXCEPTION("convert()'s 1st argument should be an object");
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
     Local<Object> srcData = Local<Object>::Cast( obj->Get( String::NewSymbol("srcData") ) );
-    if ( srcData->IsUndefined() || ! node::Buffer::HasInstance(srcData) ) {
-        return THROW_ERROR_EXCEPTION("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        THROW_ERROR_EXCEPTION("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
     int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
@@ -94,7 +105,7 @@ Handle<Value> Convert(const Arguments& args) {
         if (debug) printf( "maxMemory set to: %d\n", maxMemory );
     }
 
-    Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
+    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
 
     Magick::Image image;
     try {
@@ -103,10 +114,10 @@ Handle<Value> Convert(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+        THROW_ERROR_EXCEPTION(message.c_str());
     }
     catch (...) {
-        return THROW_ERROR_EXCEPTION("unhandled error");
+        THROW_ERROR_EXCEPTION("unhandled error");
     }
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
@@ -173,10 +184,10 @@ Handle<Value> Convert(const Arguments& args) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                return THROW_ERROR_EXCEPTION(message.c_str());
+                THROW_ERROR_EXCEPTION(message.c_str());
             }
             catch (...) {
-                return THROW_ERROR_EXCEPTION("unhandled error");
+                THROW_ERROR_EXCEPTION("unhandled error");
             }
 
             // limit canvas size to cropGeometry
@@ -203,10 +214,10 @@ Handle<Value> Convert(const Arguments& args) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                return THROW_ERROR_EXCEPTION(message.c_str());
+                THROW_ERROR_EXCEPTION(message.c_str());
             }
             catch (...) {
-                return THROW_ERROR_EXCEPTION("unhandled error");
+                THROW_ERROR_EXCEPTION("unhandled error");
             }
         }
         else if ( strcmp ( resizeStyle, "fill" ) == 0 ) {
@@ -221,14 +232,14 @@ Handle<Value> Convert(const Arguments& args) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                return THROW_ERROR_EXCEPTION(message.c_str());
+                THROW_ERROR_EXCEPTION(message.c_str());
             }
             catch (...) {
-                return THROW_ERROR_EXCEPTION("unhandled error");
+                THROW_ERROR_EXCEPTION("unhandled error");
             }
         }
         else {
-            return THROW_ERROR_EXCEPTION("resizeStyle not supported");
+            THROW_ERROR_EXCEPTION("resizeStyle not supported");
         }
         if (debug) printf( "resized to: %d, %d\n", (int)image.columns(), (int)image.rows() );
     }
@@ -248,9 +259,17 @@ Handle<Value> Convert(const Arguments& args) {
     Magick::Blob dstBlob;
     image.write( &dstBlob );
 
-    node::Buffer* retBuffer = node::Buffer::New( dstBlob.length() );
-    memcpy( node::Buffer::Data( retBuffer->handle_ ), dstBlob.data(), dstBlob.length() );
+#if NODE_MODULE_VERSION >= 14
+    const Handle<Object>& retBuffer = Buffer::New(dstBlob.length());
+#else
+    Buffer* retBuffer = Buffer::New(dstBlob.length());
+#endif
+    memcpy( Buffer::Data(retBuffer), dstBlob.data(), dstBlob.length() );
+#if NODE_MODULE_VERSION >= 14
+    args.GetReturnValue().Set(retBuffer);
+#else
     return scope.Close( retBuffer->handle_ );
+#endif
 }
 
 // input
@@ -259,24 +278,30 @@ Handle<Value> Convert(const Arguments& args) {
 //                  srcData:        required. Buffer with binary image data
 //                  debug:          optional. 1 or 0
 //              }
-Handle<Value> Identify(const Arguments& args) {
+#if NODE_MODULE_VERSION >= 14
+void Identify(const FunctionCallbackInfo<Value>& args) {
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+#else
+static Handle<Value> Identify(const Arguments& args) {
     HandleScope scope;
+#endif
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
     if ( args.Length() != 1 ) {
-        return THROW_ERROR_EXCEPTION("identify() requires 1 (option) argument!");
+        THROW_ERROR_EXCEPTION("identify() requires 1 (option) argument!");
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
     Local<Object> srcData = Local<Object>::Cast( obj->Get( String::NewSymbol("srcData") ) );
-    if ( srcData->IsUndefined() || ! node::Buffer::HasInstance(srcData) ) {
-        return THROW_ERROR_EXCEPTION("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        THROW_ERROR_EXCEPTION("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
     int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
 
-    Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
+    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
 
     Magick::Image image;
     try {
@@ -285,10 +310,10 @@ Handle<Value> Identify(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+        THROW_ERROR_EXCEPTION(message.c_str());
     }
     catch (...) {
-        return THROW_ERROR_EXCEPTION("unhandled error");
+        THROW_ERROR_EXCEPTION("unhandled error");
     }
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
@@ -300,7 +325,11 @@ Handle<Value> Identify(const Arguments& args) {
     out->Set(String::NewSymbol("depth"), Integer::New(image.depth()));
     out->Set(String::NewSymbol("format"), String::New(image.magick().c_str()));
 
+#if NODE_MODULE_VERSION >= 14
+    args.GetReturnValue().Set(out);
+#else
     return scope.Close( out );
+#endif
 }
 
 // input
@@ -310,18 +339,24 @@ Handle<Value> Identify(const Arguments& args) {
 //                  colors:         optional. 5 by default
 //                  debug:          optional. 1 or 0
 //              }
-Handle<Value> QuantizeColors(const Arguments& args) {
+#if NODE_MODULE_VERSION >= 14
+void QuantizeColors(const FunctionCallbackInfo<Value>& args) {
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+#else
+static Handle<Value> QuantizeColors(const Arguments& args) {
     HandleScope scope;
+#endif
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
     if ( args.Length() != 1 ) {
-        return THROW_ERROR_EXCEPTION("quantizeColors() requires 1 (option) argument!");
+        THROW_ERROR_EXCEPTION("quantizeColors() requires 1 (option) argument!");
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
     Local<Object> srcData = Local<Object>::Cast( obj->Get( String::NewSymbol("srcData") ) );
-    if ( srcData->IsUndefined() || ! node::Buffer::HasInstance(srcData) ) {
-        return THROW_ERROR_EXCEPTION("quantizeColors()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        THROW_ERROR_EXCEPTION("quantizeColors()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
     int colorsCount = obj->Get( String::NewSymbol("colors") )->Uint32Value();
@@ -330,7 +365,7 @@ Handle<Value> QuantizeColors(const Arguments& args) {
     int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
 
-    Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
+    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
 
     Magick::Image image;
     try {
@@ -339,10 +374,10 @@ Handle<Value> QuantizeColors(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+        THROW_ERROR_EXCEPTION(message.c_str());
     }
     catch (...) {
-        return THROW_ERROR_EXCEPTION("unhandled error");
+        THROW_ERROR_EXCEPTION("unhandled error");
     }
 
     ssize_t rows = 196; ssize_t columns = 196;
@@ -407,7 +442,11 @@ Handle<Value> QuantizeColors(const Arguments& args) {
 
     delete[] colors;
 
+#if NODE_MODULE_VERSION >= 14
+    args.GetReturnValue().Set(out);
+#else
     return scope.Close( out );
+#endif
 }
 
 // input
@@ -421,31 +460,37 @@ Handle<Value> QuantizeColors(const Arguments& args) {
 //                                  SouthWestGravity WestGravity
 //                  debug:          optional. 1 or 0
 //              }
-Handle<Value> Composite(const Arguments& args) {
+#if NODE_MODULE_VERSION >= 14
+void Composite(const FunctionCallbackInfo<Value>& args) {
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+#else
+static Handle<Value> Composite(const Arguments& args) {
     HandleScope scope;
+#endif
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
     if ( args.Length() != 1 ) {
-        return THROW_ERROR_EXCEPTION("composite() requires 1 (option) argument!");
+        THROW_ERROR_EXCEPTION("composite() requires 1 (option) argument!");
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
     Local<Object> srcData = Local<Object>::Cast( obj->Get( String::NewSymbol("srcData") ) );
-    if ( srcData->IsUndefined() || ! node::Buffer::HasInstance(srcData) ) {
-        return THROW_ERROR_EXCEPTION("composite()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        THROW_ERROR_EXCEPTION("composite()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
     Local<Object> compositeData = Local<Object>::Cast( obj->Get( String::NewSymbol("compositeData") ) );
-    if ( compositeData->IsUndefined() || ! node::Buffer::HasInstance(compositeData) ) {
-        return THROW_ERROR_EXCEPTION("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
+    if ( compositeData->IsUndefined() || ! Buffer::HasInstance(compositeData) ) {
+        THROW_ERROR_EXCEPTION("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
     }
 
 
     int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
 
-    Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
-    Magick::Blob compositeBlob( node::Buffer::Data(compositeData), node::Buffer::Length(compositeData) );
+    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
+    Magick::Blob compositeBlob( Buffer::Data(compositeData), Buffer::Length(compositeData) );
 
     Magick::Image image;
     try {
@@ -454,10 +499,10 @@ Handle<Value> Composite(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+        THROW_ERROR_EXCEPTION(message.c_str());
     }
     catch (...) {
-        return THROW_ERROR_EXCEPTION("unhandled error");
+        THROW_ERROR_EXCEPTION("unhandled error");
     }
 
     Magick::GravityType gravityType;
@@ -489,10 +534,10 @@ Handle<Value> Composite(const Arguments& args) {
         catch (std::exception& err) {
             std::string message = "compositeImage.read failed with error: ";
             message            += err.what();
-            return THROW_ERROR_EXCEPTION(message.c_str());
+            THROW_ERROR_EXCEPTION(message.c_str());
         }
         catch (...) {
-            return THROW_ERROR_EXCEPTION("unhandled error");
+            THROW_ERROR_EXCEPTION("unhandled error");
         }
 
     image.composite(compositeImage,gravityType,Magick::OverCompositeOp);
@@ -500,25 +545,51 @@ Handle<Value> Composite(const Arguments& args) {
     Magick::Blob dstBlob;
     image.write( &dstBlob );
 
-    node::Buffer* retBuffer = node::Buffer::New( dstBlob.length() );
-    memcpy( node::Buffer::Data( retBuffer->handle_ ), dstBlob.data(), dstBlob.length() );
+#if NODE_MODULE_VERSION >= 14
+    const Handle<Object>& retBuffer = Buffer::New(dstBlob.length());
+#else
+    Buffer* retBuffer = Buffer::New(dstBlob.length());
+#endif
+    memcpy( Buffer::Data(retBuffer), dstBlob.data(), dstBlob.length() );
+#if NODE_MODULE_VERSION >= 14
+    args.GetReturnValue().Set(retBuffer);
+#else
     return scope.Close( retBuffer->handle_ );
+#endif
 }
 
-Handle<Value> Version(const Arguments& args) {
+#if NODE_MODULE_VERSION >= 14
+void Version(const FunctionCallbackInfo<Value>& args) {
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+#else
+static Handle<Value> Version(const Arguments& args) {
     HandleScope scope;
+#endif
 
-    Handle<String> out = String::New( MagickLibVersionText );
+    Handle<String> out = String::NewFromUtf8(isolate, MagickLibVersionText);
 
+#if NODE_MODULE_VERSION >= 14
+    args.GetReturnValue().Set(out);
+#else
     return scope.Close( out );
+#endif
 }
 
-void init(Handle<Object> target) {
-    target->Set(String::NewSymbol("convert"), FunctionTemplate::New(Convert)->GetFunction());
-    target->Set(String::NewSymbol("identify"), FunctionTemplate::New(Identify)->GetFunction());
-    target->Set(String::NewSymbol("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
-    target->Set(String::NewSymbol("composite"), FunctionTemplate::New(Composite)->GetFunction());
-    target->Set(String::NewSymbol("version"), FunctionTemplate::New(Version)->GetFunction());
+void init(Handle<Object> exports) {
+#if NODE_MODULE_VERSION >= 14
+    NODE_SET_METHOD(exports, "convert", Convert);
+    NODE_SET_METHOD(exports, "identify", Identify);
+    NODE_SET_METHOD(exports, "quantizeColors", QuantizeColors);
+    NODE_SET_METHOD(exports, "composite", Composite);
+    NODE_SET_METHOD(exports, "version", Version);
+#else
+    exports->Set(String::NewSymbol("convert"), FunctionTemplate::New(Convert)->GetFunction());
+    exports->Set(String::NewSymbol("identify"), FunctionTemplate::New(Identify)->GetFunction());
+    exports->Set(String::NewSymbol("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
+    exports->Set(String::NewSymbol("composite"), FunctionTemplate::New(Composite)->GetFunction());
+    exports->Set(String::NewSymbol("version"), FunctionTemplate::New(Version)->GetFunction());
+#endif
 }
 
 // There is no semi-colon after NODE_MODULE as it's not a function (see node.h).
