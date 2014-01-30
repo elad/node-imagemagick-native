@@ -11,9 +11,6 @@
 #include <string.h>
 #include <exception>
 
-#define THROW_ERROR_EXCEPTION(x) ThrowException(v8::Exception::Error(String::New(x))); \
-    scope.Close(Undefined())
-
 // RAII to reset image magick's resource limit
 class LocalResourceLimiter
 {
@@ -66,35 +63,35 @@ private:
 //                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
 //                  debug:       optional. 1 or 0
 //              }
-Handle<Value> Convert(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(Convert) {
+    NanScope();
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
     LocalResourceLimiter limiter;
 
     if ( args.Length() != 1 ) {
-        return THROW_ERROR_EXCEPTION("convert() requires 1 (option) argument!");
+        return NanThrowError("convert() requires 1 (option) argument!");
     }
     if ( ! args[ 0 ]->IsObject() ) {
-        return THROW_ERROR_EXCEPTION("convert()'s 1st argument should be an object");
+        return NanThrowError("convert()'s 1st argument should be an object");
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( String::NewSymbol("srcData") ) );
-    if ( srcData->IsUndefined() || ! node::Buffer::HasInstance(srcData) ) {
-        return THROW_ERROR_EXCEPTION("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanSymbol("srcData") ) );
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        return NanThrowError("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
+    int debug = obj->Get( NanSymbol("debug") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
 
-    unsigned int maxMemory = obj->Get( String::NewSymbol("maxMemory") )->Uint32Value();
+    unsigned int maxMemory = obj->Get( NanSymbol("maxMemory") )->Uint32Value();
     if (maxMemory > 0) {
         limiter.LimitMemory(maxMemory);
         limiter.LimitDisk(maxMemory); // avoid using unlimited disk as cache
         if (debug) printf( "maxMemory set to: %d\n", maxMemory );
     }
 
-    Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
+    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
 
     Magick::Image image;
     try {
@@ -103,21 +100,21 @@ Handle<Value> Convert(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+        return NanThrowError(message.c_str());
     }
     catch (...) {
-        return THROW_ERROR_EXCEPTION("unhandled error");
+        return NanThrowError("unhandled error");
     }
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
-    unsigned int width = obj->Get( String::NewSymbol("width") )->Uint32Value();
+    unsigned int width = obj->Get( NanSymbol("width") )->Uint32Value();
     if (debug) printf( "width: %d\n", width );
 
-    unsigned int height = obj->Get( String::NewSymbol("height") )->Uint32Value();
+    unsigned int height = obj->Get( NanSymbol("height") )->Uint32Value();
     if (debug) printf( "height: %d\n", height );
 
-    Local<Value> resizeStyleValue = obj->Get( String::NewSymbol("resizeStyle") );
+    Local<Value> resizeStyleValue = obj->Get( NanSymbol("resizeStyle") );
     const char* resizeStyle = "aspectfill";
     String::AsciiValue resizeStyleAsciiValue( resizeStyleValue->ToString() );
     if ( ! resizeStyleValue->IsUndefined() ) {
@@ -125,7 +122,7 @@ Handle<Value> Convert(const Arguments& args) {
     }
     if (debug) printf( "resizeStyle: %s\n", resizeStyle );
 
-    Local<Value> formatValue = obj->Get( String::NewSymbol("format") );
+    Local<Value> formatValue = obj->Get( NanSymbol("format") );
     String::AsciiValue format( formatValue->ToString() );
     if ( ! formatValue->IsUndefined() ) {
         if (debug) printf( "format: %s\n", *format );
@@ -173,10 +170,10 @@ Handle<Value> Convert(const Arguments& args) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                return THROW_ERROR_EXCEPTION(message.c_str());
+                return NanThrowError(message.c_str());
             }
             catch (...) {
-                return THROW_ERROR_EXCEPTION("unhandled error");
+                return NanThrowError("unhandled error");
             }
 
             // limit canvas size to cropGeometry
@@ -203,10 +200,10 @@ Handle<Value> Convert(const Arguments& args) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                return THROW_ERROR_EXCEPTION(message.c_str());
+                return NanThrowError(message.c_str());
             }
             catch (...) {
-                return THROW_ERROR_EXCEPTION("unhandled error");
+                return NanThrowError("unhandled error");
             }
         }
         else if ( strcmp ( resizeStyle, "fill" ) == 0 ) {
@@ -221,25 +218,25 @@ Handle<Value> Convert(const Arguments& args) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                return THROW_ERROR_EXCEPTION(message.c_str());
+                return NanThrowError(message.c_str());
             }
             catch (...) {
-                return THROW_ERROR_EXCEPTION("unhandled error");
+                return NanThrowError("unhandled error");
             }
         }
         else {
-            return THROW_ERROR_EXCEPTION("resizeStyle not supported");
+            return NanThrowError("resizeStyle not supported");
         }
         if (debug) printf( "resized to: %d, %d\n", (int)image.columns(), (int)image.rows() );
     }
 
-    unsigned int quality = obj->Get( String::NewSymbol("quality") )->Uint32Value();
+    unsigned int quality = obj->Get( NanSymbol("quality") )->Uint32Value();
     if ( quality ) {
         if (debug) printf( "quality: %d\n", quality );
         image.quality( quality );
     }
 
-    int rotate = obj->Get( String::NewSymbol("rotate") )->Int32Value();
+    int rotate = obj->Get( NanSymbol("rotate") )->Int32Value();
     if ( rotate ) {
         if (debug) printf( "rotate: %d\n", rotate );
         image.rotate(rotate);
@@ -248,9 +245,9 @@ Handle<Value> Convert(const Arguments& args) {
     Magick::Blob dstBlob;
     image.write( &dstBlob );
 
-    node::Buffer* retBuffer = node::Buffer::New( dstBlob.length() );
-    memcpy( node::Buffer::Data( retBuffer->handle_ ), dstBlob.data(), dstBlob.length() );
-    return scope.Close( retBuffer->handle_ );
+    const Handle<Object> retBuffer = NanNewBufferHandle(dstBlob.length());
+    memcpy( Buffer::Data(retBuffer), dstBlob.data(), dstBlob.length() );
+    NanReturnValue(retBuffer);
 }
 
 // input
@@ -259,24 +256,24 @@ Handle<Value> Convert(const Arguments& args) {
 //                  srcData:        required. Buffer with binary image data
 //                  debug:          optional. 1 or 0
 //              }
-Handle<Value> Identify(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(Identify) {
+    NanScope();
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
     if ( args.Length() != 1 ) {
-        return THROW_ERROR_EXCEPTION("identify() requires 1 (option) argument!");
+        return NanThrowError("identify() requires 1 (option) argument!");
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( String::NewSymbol("srcData") ) );
-    if ( srcData->IsUndefined() || ! node::Buffer::HasInstance(srcData) ) {
-        return THROW_ERROR_EXCEPTION("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanSymbol("srcData") ) );
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        return NanThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
+    int debug = obj->Get( NanSymbol("debug") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
 
-    Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
+    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
 
     Magick::Image image;
     try {
@@ -285,22 +282,22 @@ Handle<Value> Identify(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+        return NanThrowError(message.c_str());
     }
     catch (...) {
-        return THROW_ERROR_EXCEPTION("unhandled error");
+        return NanThrowError("unhandled error");
     }
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
     Handle<Object> out = Object::New();
 
-    out->Set(String::NewSymbol("width"), Integer::New(image.columns()));
-    out->Set(String::NewSymbol("height"), Integer::New(image.rows()));
-    out->Set(String::NewSymbol("depth"), Integer::New(image.depth()));
-    out->Set(String::NewSymbol("format"), String::New(image.magick().c_str()));
+    out->Set(NanSymbol("width"), Integer::New(image.columns()));
+    out->Set(NanSymbol("height"), Integer::New(image.rows()));
+    out->Set(NanSymbol("depth"), Integer::New(image.depth()));
+    out->Set(NanSymbol("format"), String::New(image.magick().c_str()));
 
-    return scope.Close( out );
+    NanReturnValue(out);
 }
 
 // input
@@ -310,27 +307,27 @@ Handle<Value> Identify(const Arguments& args) {
 //                  colors:         optional. 5 by default
 //                  debug:          optional. 1 or 0
 //              }
-Handle<Value> QuantizeColors(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(QuantizeColors) {
+    NanScope();
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
     if ( args.Length() != 1 ) {
-        return THROW_ERROR_EXCEPTION("quantizeColors() requires 1 (option) argument!");
+        return NanThrowError("quantizeColors() requires 1 (option) argument!");
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( String::NewSymbol("srcData") ) );
-    if ( srcData->IsUndefined() || ! node::Buffer::HasInstance(srcData) ) {
-        return THROW_ERROR_EXCEPTION("quantizeColors()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanSymbol("srcData") ) );
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        return NanThrowError("quantizeColors()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int colorsCount = obj->Get( String::NewSymbol("colors") )->Uint32Value();
+    int colorsCount = obj->Get( NanSymbol("colors") )->Uint32Value();
     if (!colorsCount) colorsCount = 5;
 
-    int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
+    int debug = obj->Get( NanSymbol("debug") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
 
-    Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
+    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
 
     Magick::Image image;
     try {
@@ -339,10 +336,10 @@ Handle<Value> QuantizeColors(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+        return NanThrowError(message.c_str());
     }
     catch (...) {
-        return THROW_ERROR_EXCEPTION("unhandled error");
+        return NanThrowError("unhandled error");
     }
 
     ssize_t rows = 196; ssize_t columns = 196;
@@ -394,20 +391,20 @@ Handle<Value> QuantizeColors(const Arguments& args) {
         int b = ((int) colors[x].blue) / 255;
         if (b > 255) b = 255;
 
-        color->Set(String::NewSymbol("r"), Integer::New(r));
-        color->Set(String::NewSymbol("g"), Integer::New(g));
-        color->Set(String::NewSymbol("b"), Integer::New(b));
+        color->Set(NanSymbol("r"), Integer::New(r));
+        color->Set(NanSymbol("g"), Integer::New(g));
+        color->Set(NanSymbol("b"), Integer::New(b));
 
         char hexcol[16];
         snprintf(hexcol, sizeof hexcol, "%02x%02x%02x", r, g, b);
-        color->Set(String::NewSymbol("hex"), String::New(hexcol));
+        color->Set(NanSymbol("hex"), String::New(hexcol));
 
         out->Set(x, color);
     }
 
     delete[] colors;
 
-    return scope.Close( out );
+    NanReturnValue(out);
 }
 
 // input
@@ -421,31 +418,31 @@ Handle<Value> QuantizeColors(const Arguments& args) {
 //                                  SouthWestGravity WestGravity
 //                  debug:          optional. 1 or 0
 //              }
-Handle<Value> Composite(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(Composite) {
+    NanScope();
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
     if ( args.Length() != 1 ) {
-        return THROW_ERROR_EXCEPTION("composite() requires 1 (option) argument!");
+        return NanThrowError("composite() requires 1 (option) argument!");
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( String::NewSymbol("srcData") ) );
-    if ( srcData->IsUndefined() || ! node::Buffer::HasInstance(srcData) ) {
-        return THROW_ERROR_EXCEPTION("composite()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanSymbol("srcData") ) );
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        return NanThrowError("composite()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    Local<Object> compositeData = Local<Object>::Cast( obj->Get( String::NewSymbol("compositeData") ) );
-    if ( compositeData->IsUndefined() || ! node::Buffer::HasInstance(compositeData) ) {
-        return THROW_ERROR_EXCEPTION("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
+    Local<Object> compositeData = Local<Object>::Cast( obj->Get( NanSymbol("compositeData") ) );
+    if ( compositeData->IsUndefined() || ! Buffer::HasInstance(compositeData) ) {
+        return NanThrowError("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
     }
 
 
-    int debug = obj->Get( String::NewSymbol("debug") )->Uint32Value();
+    int debug = obj->Get( NanSymbol("debug") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
 
-    Magick::Blob srcBlob( node::Buffer::Data(srcData), node::Buffer::Length(srcData) );
-    Magick::Blob compositeBlob( node::Buffer::Data(compositeData), node::Buffer::Length(compositeData) );
+    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
+    Magick::Blob compositeBlob( Buffer::Data(compositeData), Buffer::Length(compositeData) );
 
     Magick::Image image;
     try {
@@ -454,15 +451,15 @@ Handle<Value> Composite(const Arguments& args) {
     catch (std::exception& err) {
         std::string message = "image.read failed with error: ";
         message            += err.what();
-        return THROW_ERROR_EXCEPTION(message.c_str());
+        return NanThrowError(message.c_str());
     }
     catch (...) {
-        return THROW_ERROR_EXCEPTION("unhandled error");
+        return NanThrowError("unhandled error");
     }
 
     Magick::GravityType gravityType;
 
-    Local<Value> gravityValue = obj->Get( String::NewSymbol("gravity") );
+    Local<Value> gravityValue = obj->Get( NanSymbol("gravity") );
     String::AsciiValue gravity( gravityValue->ToString() );
 
     if(strcmp("CenterGravity",*gravity)==0)         gravityType=Magick::CenterGravity;
@@ -489,10 +486,10 @@ Handle<Value> Composite(const Arguments& args) {
         catch (std::exception& err) {
             std::string message = "compositeImage.read failed with error: ";
             message            += err.what();
-            return THROW_ERROR_EXCEPTION(message.c_str());
+            return NanThrowError(message.c_str());
         }
         catch (...) {
-            return THROW_ERROR_EXCEPTION("unhandled error");
+            return NanThrowError("unhandled error");
         }
 
     image.composite(compositeImage,gravityType,Magick::OverCompositeOp);
@@ -500,25 +497,31 @@ Handle<Value> Composite(const Arguments& args) {
     Magick::Blob dstBlob;
     image.write( &dstBlob );
 
-    node::Buffer* retBuffer = node::Buffer::New( dstBlob.length() );
-    memcpy( node::Buffer::Data( retBuffer->handle_ ), dstBlob.data(), dstBlob.length() );
-    return scope.Close( retBuffer->handle_ );
+    const Handle<Object> retBuffer = NanNewBufferHandle(dstBlob.length());
+    memcpy( Buffer::Data(retBuffer), dstBlob.data(), dstBlob.length() );
+    NanReturnValue(retBuffer);
 }
 
-Handle<Value> Version(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(Version) {
+    NanScope();
 
-    Handle<String> out = String::New( MagickLibVersionText );
-
-    return scope.Close( out );
+    NanReturnValue(String::New(MagickLibVersionText));
 }
 
-void init(Handle<Object> target) {
-    target->Set(String::NewSymbol("convert"), FunctionTemplate::New(Convert)->GetFunction());
-    target->Set(String::NewSymbol("identify"), FunctionTemplate::New(Identify)->GetFunction());
-    target->Set(String::NewSymbol("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
-    target->Set(String::NewSymbol("composite"), FunctionTemplate::New(Composite)->GetFunction());
-    target->Set(String::NewSymbol("version"), FunctionTemplate::New(Version)->GetFunction());
+void init(Handle<Object> exports) {
+#if NODE_MODULE_VERSION >= 14
+    NODE_SET_METHOD(exports, "convert", Convert);
+    NODE_SET_METHOD(exports, "identify", Identify);
+    NODE_SET_METHOD(exports, "quantizeColors", QuantizeColors);
+    NODE_SET_METHOD(exports, "composite", Composite);
+    NODE_SET_METHOD(exports, "version", Version);
+#else
+    exports->Set(NanSymbol("convert"), FunctionTemplate::New(Convert)->GetFunction());
+    exports->Set(NanSymbol("identify"), FunctionTemplate::New(Identify)->GetFunction());
+    exports->Set(NanSymbol("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
+    exports->Set(NanSymbol("composite"), FunctionTemplate::New(Composite)->GetFunction());
+    exports->Set(NanSymbol("version"), FunctionTemplate::New(Version)->GetFunction());
+#endif
 }
 
 // There is no semi-colon after NODE_MODULE as it's not a function (see node.h).

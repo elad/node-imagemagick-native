@@ -17,6 +17,9 @@
       "sources": [ "src/imagemagick.cc" ],
       'cflags!': [ '-fno-exceptions' ],
       'cflags_cc!': [ '-fno-exceptions' ],
+      "include_dirs" : [
+        "<!(node -e \"require('nan')\")"
+      ],
       "conditions": [
         ['OS=="win"', {
           "libraries": [
