@@ -1,4 +1,5 @@
 {
+  'includes': [ 'common.gypi' ],
   'conditions': [
     ['OS=="win"', {
       'variables': {
@@ -7,7 +8,8 @@
       }
     }, { # 'OS!="win"'
       'variables': {
-        # no vars
+        'std%':'ansi',
+        'OSX_VER%': "<!(sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*\.[0-9]$*' | awk '{print substr($1,0,4)}')",
       }
     }]
   ],
@@ -18,6 +20,24 @@
       'cflags!': [ '-fno-exceptions' ],
       'cflags_cc!': [ '-fno-exceptions' ],
       "conditions": [
+        ['OSX_VER == "10.9"', {
+          'OTHER_CPLUSPLUSFLAGS' : [
+            '<!@(Magick++-config --cflags)',
+            '-std=c++11',
+            '-stdlib=libc++',
+          ],
+          'cflags_cc' : [
+              '-std=c++11',
+          ],
+          'xcode_settings': {
+            #'OTHER_CPLUSPLUSFLAGS':['-std=c++11','-stdlib=libc++'],
+            'OTHER_CPLUSPLUSFLAGS':['-std=c++11','-stdlib=libc++','<!@(Magick++-config --cflags)'],
+            'OTHER_LDFLAGS':['-stdlib=libc++'],
+            'CLANG_CXX_LANGUAGE_STANDARD':'c++11',
+            'MACOSX_DEPLOYMENT_TARGET':'10.7'
+          }
+        }],
+        
         ['OS=="win"', {
           "libraries": [
             '-l<(MAGICK_ROOT)/lib/CORE_RL_magick_.lib',
@@ -37,7 +57,7 @@
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
             'OTHER_CFLAGS': [
               '<!@(Magick++-config --cflags)'
-            ]
+            ],
           },
           "libraries": [
              '<!@(Magick++-config --ldflags --libs)',
