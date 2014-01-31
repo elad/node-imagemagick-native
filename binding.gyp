@@ -4,11 +4,16 @@
       'variables': {
         'MAGICK_ROOT%': '<!(python get_regvalue.py)',
         # download the dll binary and check off for libraries and includes
+        'OSX_VER%': "0",
       }
     }],
     ['OS=="mac"', {
       'variables': {
         'OSX_VER%': "<!(sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*\.[0-9]$*' | awk '{print substr($1,0,4)}')",
+      }
+    }, {
+      'variables': {
+        'OSX_VER%': "0",
       }
     }]
   ],
