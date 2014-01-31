@@ -61,7 +61,10 @@ The method returns an object similar to:
         format: 'JPEG',
         width: 3904,
         height: 2622,
-        depth: 8
+        depth: 8,
+        exif: {
+            orientation: 0 # 0 if none exists
+        }
     }
 
 ### quantizeColors( options )

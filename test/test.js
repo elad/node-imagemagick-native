@@ -244,13 +244,14 @@ test( 'identify srcData is a Buffer', function (t) {
 });
 
 test( 'identify results', function (t) {
-    var results = imagemagick.identify({
+    var info = imagemagick.identify({
         srcData: require('fs').readFileSync( "./test/test.png" )
     });
-    t.equal( results.width, 58, 'width is 58' );
-    t.equal( results.height, 66, 'height is 66' );
-    t.equal( results.depth, 8, 'depth is 8' );
-    t.equal( results.format, 'PNG', 'format is PNG' );
+    t.equal( info.width, 58, 'width is 58' );
+    t.equal( info.height, 66, 'height is 66' );
+    t.equal( info.depth, 8, 'depth is 8' );
+    t.equal( info.format, 'PNG', 'format is PNG' );
+    t.equal( info.exif.orientation, 0, 'orientation doesnt exist' );
     t.end();
 });
 

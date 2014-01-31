@@ -300,6 +300,10 @@ Handle<Value> Identify(const Arguments& args) {
     out->Set(String::NewSymbol("depth"), Integer::New(image.depth()));
     out->Set(String::NewSymbol("format"), String::New(image.magick().c_str()));
 
+    Handle<Object> out_exif = Object::New();
+    out_exif->Set(String::NewSymbol("orientation"), Integer::New(atoi(image.attribute("EXIF:Orientation").c_str())));
+    out->Set(String::NewSymbol("exif"), out_exif);
+
     return scope.Close( out );
 }
 
