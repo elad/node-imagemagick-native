@@ -11,6 +11,10 @@
 #include <string.h>
 #include <exception>
 
+#ifdef _WIN32
+#define snprintf _snprintf
+#endif
+
 #define THROW_ERROR_EXCEPTION(x) ThrowException(v8::Exception::Error(String::New(x))); \
     scope.Close(Undefined())
 
