@@ -116,17 +116,19 @@ NAN_METHOD(Convert) {
 
     Local<Value> resizeStyleValue = obj->Get( NanSymbol("resizeStyle") );
     const char* resizeStyle = "aspectfill";
-    String::AsciiValue resizeStyleAsciiValue( resizeStyleValue->ToString() );
     if ( ! resizeStyleValue->IsUndefined() ) {
-        resizeStyle = *resizeStyleAsciiValue;
+        size_t count;
+        resizeStyle = NanCString(resizeStyleValue, &count);
     }
     if (debug) printf( "resizeStyle: %s\n", resizeStyle );
 
     Local<Value> formatValue = obj->Get( NanSymbol("format") );
-    String::AsciiValue format( formatValue->ToString() );
+    const char* format;
     if ( ! formatValue->IsUndefined() ) {
-        if (debug) printf( "format: %s\n", *format );
-        image.magick( *format );
+        size_t count;
+        format = NanCString(formatValue, &count);
+        if (debug) printf( "format: %s\n", format );
+        image.magick( format );
     }
 
     if ( width || height ) {
@@ -181,7 +183,7 @@ NAN_METHOD(Convert) {
             Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
 
             Magick::Color transparent( "white" );
-            if ( strcmp( *format, "PNG" ) == 0 ) {
+            if ( strcmp( format, "PNG" ) == 0 ) {
                 // make background transparent for PNG
                 // JPEG background becomes black if set transparent here
                 transparent.alpha( 1. );
@@ -290,12 +292,12 @@ NAN_METHOD(Identify) {
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
-    Handle<Object> out = Object::New();
+    Handle<Object> out = NanNew<Object>();
 
-    out->Set(NanSymbol("width"), Integer::New(image.columns()));
-    out->Set(NanSymbol("height"), Integer::New(image.rows()));
-    out->Set(NanSymbol("depth"), Integer::New(image.depth()));
-    out->Set(NanSymbol("format"), String::New(image.magick().c_str()));
+    out->Set(NanSymbol("width"), NanNew<Integer>(image.columns()));
+    out->Set(NanSymbol("height"), NanNew<Integer>(image.rows()));
+    out->Set(NanSymbol("depth"), NanNew<Integer>(image.depth()));
+    out->Set(NanSymbol("format"), NanNew<String>(image.magick().c_str()));
 
     NanReturnValue(out);
 }
@@ -374,13 +376,13 @@ NAN_METHOD(QuantizeColors) {
         if (index >= colorsCount) break;
     }
 
-    Handle<Object> out = Array::New();
+    Handle<Object> out = NanNew<Array>();
 
     for(int x = 0; x < colorsCount; x++)
         if (debug) printf("found rgb : %d %d %d\n", ((int) colors[x].red) / 255, ((int) colors[x].green) / 255, ((int) colors[x].blue) / 255);
 
     for(int x = 0; x < colorsCount; x++) {
-        Local<Object> color = Object::New();
+        Local<Object> color = NanNew<Object>();
 
         int r = ((int) colors[x].red) / 255;
         if (r > 255) r = 255;
@@ -391,13 +393,13 @@ NAN_METHOD(QuantizeColors) {
         int b = ((int) colors[x].blue) / 255;
         if (b > 255) b = 255;
 
-        color->Set(NanSymbol("r"), Integer::New(r));
-        color->Set(NanSymbol("g"), Integer::New(g));
-        color->Set(NanSymbol("b"), Integer::New(b));
+        color->Set(NanSymbol("r"), NanNew<Integer>(r));
+        color->Set(NanSymbol("g"), NanNew<Integer>(g));
+        color->Set(NanSymbol("b"), NanNew<Integer>(b));
 
         char hexcol[16];
         snprintf(hexcol, sizeof hexcol, "%02x%02x%02x", r, g, b);
-        color->Set(NanSymbol("hex"), String::New(hexcol));
+        color->Set(NanSymbol("hex"), NanNew<String>(hexcol));
 
         out->Set(x, color);
     }
@@ -460,24 +462,25 @@ NAN_METHOD(Composite) {
     Magick::GravityType gravityType;
 
     Local<Value> gravityValue = obj->Get( NanSymbol("gravity") );
-    String::AsciiValue gravity( gravityValue->ToString() );
+    size_t count;
+    const char* gravity = NanCString(gravityValue, &count);
 
-    if(strcmp("CenterGravity",*gravity)==0)         gravityType=Magick::CenterGravity;
-    else if(strcmp("EastGravity",*gravity)==0)      gravityType=Magick::EastGravity;
-    else if(strcmp("ForgetGravity",*gravity)==0)    gravityType=Magick::ForgetGravity;
-    else if(strcmp("NorthEastGravity",*gravity)==0) gravityType=Magick::NorthEastGravity;
-    else if(strcmp("NorthGravity",*gravity)==0)     gravityType=Magick::NorthGravity;
-    else if(strcmp("NorthWestGravity",*gravity)==0) gravityType=Magick::NorthWestGravity;
-    else if(strcmp("SouthEastGravity",*gravity)==0) gravityType=Magick::SouthEastGravity;
-    else if(strcmp("SouthGravity",*gravity)==0)     gravityType=Magick::SouthGravity;
-    else if(strcmp("SouthWestGravity",*gravity)==0) gravityType=Magick::SouthWestGravity;
-    else if(strcmp("WestGravity",*gravity)==0)      gravityType=Magick::WestGravity;
+    if(strcmp("CenterGravity", gravity)==0)         gravityType=Magick::CenterGravity;
+    else if(strcmp("EastGravity", gravity)==0)      gravityType=Magick::EastGravity;
+    else if(strcmp("ForgetGravity", gravity)==0)    gravityType=Magick::ForgetGravity;
+    else if(strcmp("NorthEastGravity", gravity)==0) gravityType=Magick::NorthEastGravity;
+    else if(strcmp("NorthGravity", gravity)==0)     gravityType=Magick::NorthGravity;
+    else if(strcmp("NorthWestGravity", gravity)==0) gravityType=Magick::NorthWestGravity;
+    else if(strcmp("SouthEastGravity", gravity)==0) gravityType=Magick::SouthEastGravity;
+    else if(strcmp("SouthGravity", gravity)==0)     gravityType=Magick::SouthGravity;
+    else if(strcmp("SouthWestGravity", gravity)==0) gravityType=Magick::SouthWestGravity;
+    else if(strcmp("WestGravity", gravity)==0)      gravityType=Magick::WestGravity;
     else {
         gravityType = Magick::ForgetGravity;
-        if (debug) printf( "invalid gravity: '%s' fell through to ForgetGravity\n",*gravity);
+        if (debug) printf( "invalid gravity: '%s' fell through to ForgetGravity\n", gravity);
     }
 
-    if (debug) printf( "gravity: %s (%d)\n",*gravity,(int) gravityType);
+    if (debug) printf( "gravity: %s (%d)\n", gravity,(int) gravityType);
 
     Magick::Image compositeImage;
         try {
@@ -505,7 +508,7 @@ NAN_METHOD(Composite) {
 NAN_METHOD(Version) {
     NanScope();
 
-    NanReturnValue(String::New(MagickLibVersionText));
+    NanReturnValue(NanNew<String>(MagickLibVersionText));
 }
 
 void init(Handle<Object> exports) {
