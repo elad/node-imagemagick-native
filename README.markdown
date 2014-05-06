@@ -124,15 +124,6 @@ This library currently provide only these, please try [node-imagemagick](https:/
 Install [Imagemagick](http://www.imagemagick.org/) with headers before installing this module.
 Tested with ImageMagick 6.7.7 on CentOS6 and MacOS10.7, Ubuntu12.04 .
 
-MacOS10.9 Maverick users need ImageMagick linked to libstdc++ .  
-see [issue#17](https://github.com/mash/node-imagemagick-native/issues/17#issuecomment-33757999)
-
-    # bottle for mountain lion is linked to libstdc++
-    wget "http://downloads.sourceforge.net/project/machomebrew/Bottles/imagemagick-6.8.7-7.mountain_lion.bottle.tar.gz"
-    brew install imagemagick-6.8.7-7.mountain_lion.bottle.tar.gz
-
-Otherwise:
-
     brew install imagemagick
 
       or
