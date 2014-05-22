@@ -81,8 +81,10 @@ NAN_METHOD(Convert) {
         return NanThrowError("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int debug = obj->Get( NanSymbol("debug") )->Uint32Value();
+    int debug          = obj->Get( NanSymbol("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( NanSymbol("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
+    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
     unsigned int maxMemory = obj->Get( NanSymbol("maxMemory") )->Uint32Value();
     if (maxMemory > 0) {
@@ -98,9 +100,15 @@ NAN_METHOD(Convert) {
         image.read( srcBlob );
     }
     catch (std::exception& err) {
-        std::string message = "image.read failed with error: ";
-        message            += err.what();
-        return NanThrowError(message.c_str());
+        std::string what (err.what());
+        std::string message = std::string("image.read failed with error: ") + what;
+        std::size_t found   = what.find( "warn" );
+        if (ignoreWarnings && (found != std::string::npos)) {
+            if (debug) printf("warning: %s\n", message.c_str());
+        }
+        else {
+            return NanThrowError(message.c_str());
+        }
     }
     catch (...) {
         return NanThrowError("unhandled error");
@@ -272,8 +280,10 @@ NAN_METHOD(Identify) {
         return NanThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int debug = obj->Get( NanSymbol("debug") )->Uint32Value();
+    int debug          = obj->Get( NanSymbol("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( NanSymbol("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
+    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
     Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
 
@@ -282,9 +292,15 @@ NAN_METHOD(Identify) {
         image.read( srcBlob );
     }
     catch (std::exception& err) {
-        std::string message = "image.read failed with error: ";
-        message            += err.what();
-        return NanThrowError(message.c_str());
+        std::string what (err.what());
+        std::string message = std::string("image.read failed with error: ") + what;
+        std::size_t found   = what.find( "warn" );
+        if (ignoreWarnings && (found != std::string::npos)) {
+            if (debug) printf("warning: %s\n", message.c_str());
+        }
+        else {
+            return NanThrowError(message.c_str());
+        }
     }
     catch (...) {
         return NanThrowError("unhandled error");
@@ -330,8 +346,10 @@ NAN_METHOD(QuantizeColors) {
     int colorsCount = obj->Get( NanSymbol("colors") )->Uint32Value();
     if (!colorsCount) colorsCount = 5;
 
-    int debug = obj->Get( NanSymbol("debug") )->Uint32Value();
+    int debug          = obj->Get( NanSymbol("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( NanSymbol("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
+    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
     Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
 
@@ -340,9 +358,15 @@ NAN_METHOD(QuantizeColors) {
         image.read( srcBlob );
     }
     catch (std::exception& err) {
-        std::string message = "image.read failed with error: ";
-        message            += err.what();
-        return NanThrowError(message.c_str());
+        std::string what (err.what());
+        std::string message = std::string("image.read failed with error: ") + what;
+        std::size_t found   = what.find( "warn" );
+        if (ignoreWarnings && (found != std::string::npos)) {
+            if (debug) printf("warning: %s\n", message.c_str());
+        }
+        else {
+            return NanThrowError(message.c_str());
+        }
     }
     catch (...) {
         return NanThrowError("unhandled error");
@@ -443,9 +467,10 @@ NAN_METHOD(Composite) {
         return NanThrowError("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
     }
 
-
-    int debug = obj->Get( NanSymbol("debug") )->Uint32Value();
+    int debug          = obj->Get( NanSymbol("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( NanSymbol("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
+    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
     Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
     Magick::Blob compositeBlob( Buffer::Data(compositeData), Buffer::Length(compositeData) );
@@ -455,9 +480,15 @@ NAN_METHOD(Composite) {
         image.read( srcBlob );
     }
     catch (std::exception& err) {
-        std::string message = "image.read failed with error: ";
-        message            += err.what();
-        return NanThrowError(message.c_str());
+        std::string what (err.what());
+        std::string message = std::string("image.read failed with error: ") + what;
+        std::size_t found   = what.find( "warn" );
+        if (ignoreWarnings && (found != std::string::npos)) {
+            if (debug) printf("warning: %s\n", message.c_str());
+        }
+        else {
+            return NanThrowError(message.c_str());
+        }
     }
     catch (...) {
         return NanThrowError("unhandled error");
@@ -487,18 +518,24 @@ NAN_METHOD(Composite) {
     if (debug) printf( "gravity: %s (%d)\n", gravity,(int) gravityType);
 
     Magick::Image compositeImage;
-        try {
-            compositeImage.read( compositeBlob );
+    try {
+        compositeImage.read( compositeBlob );
+    }
+    catch (std::exception& err) {
+        std::string what (err.what());
+        std::string message = std::string("compositeImage.read failed with error: ") + what;
+        std::size_t found   = what.find( "warn" );
+        if (ignoreWarnings && (found != std::string::npos)) {
+            if (debug) printf("warning: %s\n", message.c_str());
         }
-        catch (std::exception& err) {
-            std::string message = "compositeImage.read failed with error: ";
-            message            += err.what();
+        else {
             return NanThrowError(message.c_str());
         }
-        catch (...) {
-            return NanThrowError("unhandled error");
-        }
-
+    }
+    catch (...) {
+        return NanThrowError("unhandled error");
+    }
+    
     image.composite(compositeImage,gravityType,Magick::OverCompositeOp);
 
     Magick::Blob dstBlob;

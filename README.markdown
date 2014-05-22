@@ -30,18 +30,19 @@ Convert a buffer provided as `options.srcData` and return a Buffer.
 The `options` argument can have following values:
 
     {
-        srcData:     required. Buffer with binary image data
-        quality:     optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
-        width:       optional. px.
-        height:      optional. px.
-        resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
-                     aspectfill: keep aspect ratio, get the exact provided size,
-                                 crop top/bottom or left/right if necessary
-                     aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
-                     fill:       forget aspect ratio, get the exact provided size
-        format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
-        rotate:      optional. degrees.
-        debug:       optional. 1 or 0
+        srcData:        required. Buffer with binary image data
+        quality:        optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
+        width:          optional. px.
+        height:         optional. px.
+        resizeStyle:    optional. default: "aspectfill". can be "aspectfit", "fill"
+                        aspectfill: keep aspect ratio, get the exact provided size,
+                                    crop top/bottom or left/right if necessary
+                        aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
+                        fill:       forget aspect ratio, get the exact provided size
+        format:         optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
+        rotate:         optional. degrees.
+        debug:          optional. 1 or 0
+        ignoreWarnings: optional. 1 or 0
     }
 
 ### identify( options )
@@ -51,8 +52,9 @@ Identify a buffer provided as `srcData` and return an object.
 The `options` argument can have following values:
 
     {
-        srcData:     required. Buffer with binary image data
-        debug:       optional. 1 or 0
+        srcData:        required. Buffer with binary image data
+        debug:          optional. 1 or 0
+        ignoreWarnings: optional. 1 or 0
     }
 
 The method returns an object similar to:
@@ -74,9 +76,10 @@ Quantize the image to a specified amount of colors from a buffer provided as `sr
 The `options` argument can have following values:
 
     {
-        srcData:     required. Buffer with binary image data
-        colors:      required. number of colors to extract, defaults to 5
-        debug:       optional. 1 or 0
+        srcData:        required. Buffer with binary image data
+        colors:         required. number of colors to extract, defaults to 5
+        debug:          optional. 1 or 0
+        ignoreWarnings: optional. 1 or 0
     }
 
 The method returns an array similar to:
@@ -109,10 +112,11 @@ Composite a buffer provided as `options.compositeData` on a buffer provided as `
 The `options` argument can have following values:
 
     {
-        srcData:       required. Buffer with binary image data
-        compositeData: required. Buffer with binary image data
-        gravity:       optional. Can be one of "CenterGravity" "EastGravity" "ForgetGravity" "NorthEastGravity" "NorthGravity" "NorthWestGravity" "SouthEastGravity" "SouthGravity" "SouthWestGravity" "WestGravity"
-        debug:         optional. 1 or 0
+        srcData:        required. Buffer with binary image data
+        compositeData:  required. Buffer with binary image data
+        gravity:        optional. Can be one of "CenterGravity" "EastGravity" "ForgetGravity" "NorthEastGravity" "NorthGravity" "NorthWestGravity" "SouthEastGravity" "SouthGravity" "SouthWestGravity" "WestGravity"
+        debug:          optional. 1 or 0
+        ignoreWarnings: optional. 1 or 0
     }
 
 This library currently provide only these, please try [node-imagemagick](https://github.com/rsms/node-imagemagick/) if you want more.
