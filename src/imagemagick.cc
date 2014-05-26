@@ -76,17 +76,17 @@ NAN_METHOD(Convert) {
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanSymbol("srcData") ) );
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
         return NanThrowError("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int debug          = obj->Get( NanSymbol("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanSymbol("ignoreWarnings") )->Uint32Value();
+    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
     if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
-    unsigned int maxMemory = obj->Get( NanSymbol("maxMemory") )->Uint32Value();
+    unsigned int maxMemory = obj->Get( NanNew<String>("maxMemory") )->Uint32Value();
     if (maxMemory > 0) {
         limiter.LimitMemory(maxMemory);
         limiter.LimitDisk(maxMemory); // avoid using unlimited disk as cache
@@ -116,13 +116,13 @@ NAN_METHOD(Convert) {
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
-    unsigned int width = obj->Get( NanSymbol("width") )->Uint32Value();
+    unsigned int width = obj->Get( NanNew<String>("width") )->Uint32Value();
     if (debug) printf( "width: %d\n", width );
 
-    unsigned int height = obj->Get( NanSymbol("height") )->Uint32Value();
+    unsigned int height = obj->Get( NanNew<String>("height") )->Uint32Value();
     if (debug) printf( "height: %d\n", height );
 
-    Local<Value> resizeStyleValue = obj->Get( NanSymbol("resizeStyle") );
+    Local<Value> resizeStyleValue = obj->Get( NanNew<String>("resizeStyle") );
     const char* resizeStyle = "aspectfill";
     if ( ! resizeStyleValue->IsUndefined() ) {
         size_t count;
@@ -130,7 +130,7 @@ NAN_METHOD(Convert) {
     }
     if (debug) printf( "resizeStyle: %s\n", resizeStyle );
 
-    Local<Value> formatValue = obj->Get( NanSymbol("format") );
+    Local<Value> formatValue = obj->Get( NanNew<String>("format") );
     const char* format;
     if ( ! formatValue->IsUndefined() ) {
         size_t count;
@@ -240,13 +240,13 @@ NAN_METHOD(Convert) {
         if (debug) printf( "resized to: %d, %d\n", (int)image.columns(), (int)image.rows() );
     }
 
-    unsigned int quality = obj->Get( NanSymbol("quality") )->Uint32Value();
+    unsigned int quality = obj->Get( NanNew<String>("quality") )->Uint32Value();
     if ( quality ) {
         if (debug) printf( "quality: %d\n", quality );
         image.quality( quality );
     }
 
-    int rotate = obj->Get( NanSymbol("rotate") )->Int32Value();
+    int rotate = obj->Get( NanNew<String>("rotate") )->Int32Value();
     if ( rotate ) {
         if (debug) printf( "rotate: %d\n", rotate );
         image.rotate(rotate);
@@ -275,13 +275,13 @@ NAN_METHOD(Identify) {
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanSymbol("srcData") ) );
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
         return NanThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int debug          = obj->Get( NanSymbol("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanSymbol("ignoreWarnings") )->Uint32Value();
+    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
     if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
@@ -310,14 +310,14 @@ NAN_METHOD(Identify) {
 
     Handle<Object> out = NanNew<Object>();
 
-    out->Set(NanSymbol("width"), NanNew<Integer>(image.columns()));
-    out->Set(NanSymbol("height"), NanNew<Integer>(image.rows()));
-    out->Set(NanSymbol("depth"), NanNew<Integer>(image.depth()));
-    out->Set(NanSymbol("format"), NanNew<String>(image.magick().c_str()));
+    out->Set(NanNew<String>("width"), NanNew<Integer>(image.columns()));
+    out->Set(NanNew<String>("height"), NanNew<Integer>(image.rows()));
+    out->Set(NanNew<String>("depth"), NanNew<Integer>(image.depth()));
+    out->Set(NanNew<String>("format"), NanNew<String>(image.magick().c_str()));
 
     Handle<Object> out_exif = NanNew<Object>();
-    out_exif->Set(NanSymbol("orientation"), NanNew<Integer>(atoi(image.attribute("EXIF:Orientation").c_str())));
-    out->Set(NanSymbol("exif"), out_exif);
+    out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(image.attribute("EXIF:Orientation").c_str())));
+    out->Set(NanNew<String>("exif"), out_exif);
 
     NanReturnValue(out);
 }
@@ -338,16 +338,16 @@ NAN_METHOD(QuantizeColors) {
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanSymbol("srcData") ) );
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
         return NanThrowError("quantizeColors()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int colorsCount = obj->Get( NanSymbol("colors") )->Uint32Value();
+    int colorsCount = obj->Get( NanNew<String>("colors") )->Uint32Value();
     if (!colorsCount) colorsCount = 5;
 
-    int debug          = obj->Get( NanSymbol("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanSymbol("ignoreWarnings") )->Uint32Value();
+    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
     if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
@@ -421,13 +421,13 @@ NAN_METHOD(QuantizeColors) {
         int b = ((int) colors[x].blue) / 255;
         if (b > 255) b = 255;
 
-        color->Set(NanSymbol("r"), NanNew<Integer>(r));
-        color->Set(NanSymbol("g"), NanNew<Integer>(g));
-        color->Set(NanSymbol("b"), NanNew<Integer>(b));
+        color->Set(NanNew<String>("r"), NanNew<Integer>(r));
+        color->Set(NanNew<String>("g"), NanNew<Integer>(g));
+        color->Set(NanNew<String>("b"), NanNew<Integer>(b));
 
         char hexcol[16];
         snprintf(hexcol, sizeof hexcol, "%02x%02x%02x", r, g, b);
-        color->Set(NanSymbol("hex"), NanNew<String>(hexcol));
+        color->Set(NanNew<String>("hex"), NanNew<String>(hexcol));
 
         out->Set(x, color);
     }
@@ -457,18 +457,18 @@ NAN_METHOD(Composite) {
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanSymbol("srcData") ) );
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
         return NanThrowError("composite()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    Local<Object> compositeData = Local<Object>::Cast( obj->Get( NanSymbol("compositeData") ) );
+    Local<Object> compositeData = Local<Object>::Cast( obj->Get( NanNew<String>("compositeData") ) );
     if ( compositeData->IsUndefined() || ! Buffer::HasInstance(compositeData) ) {
         return NanThrowError("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
     }
 
-    int debug          = obj->Get( NanSymbol("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanSymbol("ignoreWarnings") )->Uint32Value();
+    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
     if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
@@ -496,7 +496,7 @@ NAN_METHOD(Composite) {
 
     Magick::GravityType gravityType;
 
-    Local<Value> gravityValue = obj->Get( NanSymbol("gravity") );
+    Local<Value> gravityValue = obj->Get( NanNew<String>("gravity") );
     size_t count;
     const char* gravity = NanCString(gravityValue, &count);
 
@@ -535,7 +535,7 @@ NAN_METHOD(Composite) {
     catch (...) {
         return NanThrowError("unhandled error");
     }
-    
+
     image.composite(compositeImage,gravityType,Magick::OverCompositeOp);
 
     Magick::Blob dstBlob;
@@ -560,11 +560,11 @@ void init(Handle<Object> exports) {
     NODE_SET_METHOD(exports, "composite", Composite);
     NODE_SET_METHOD(exports, "version", Version);
 #else
-    exports->Set(NanSymbol("convert"), FunctionTemplate::New(Convert)->GetFunction());
-    exports->Set(NanSymbol("identify"), FunctionTemplate::New(Identify)->GetFunction());
-    exports->Set(NanSymbol("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
-    exports->Set(NanSymbol("composite"), FunctionTemplate::New(Composite)->GetFunction());
-    exports->Set(NanSymbol("version"), FunctionTemplate::New(Version)->GetFunction());
+    exports->Set(NanNew<String>("convert"), FunctionTemplate::New(Convert)->GetFunction());
+    exports->Set(NanNew<String>("identify"), FunctionTemplate::New(Identify)->GetFunction());
+    exports->Set(NanNew<String>("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
+    exports->Set(NanNew<String>("composite"), FunctionTemplate::New(Composite)->GetFunction());
+    exports->Set(NanNew<String>("version"), FunctionTemplate::New(Version)->GetFunction());
 #endif
 }
 
