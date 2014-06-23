@@ -334,7 +334,7 @@ NAN_METHOD(GetPixelColor) {
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
     if ( args.Length() != 1 ) {
-        return NanThrowError("quantizeColors() requires 1 (option) argument!");
+        return NanThrowError("getPixelColor() requires 1 (option) argument!");
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
@@ -346,9 +346,9 @@ NAN_METHOD(GetPixelColor) {
     int xValue = obj->Get( NanNew<String>("x") )->Uint32Value();
     int yValue = obj->Get( NanNew<String>("y") )->Uint32Value();  
 
-    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
+    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData));
 
-    Magick::Image image;
+    Magick::Image image;    
     try {
         image.read( srcBlob );        
     }
@@ -362,7 +362,7 @@ NAN_METHOD(GetPixelColor) {
     }
 
     int w = image.columns();
-    int h = image.rows();
+    int h = image.rows();    
 
     if (xValue > w || yValue > h || xValue < 0 || yValue < 0) {
         return NanThrowError("x/y values are beyond the image\'s dimensions");
@@ -373,12 +373,13 @@ NAN_METHOD(GetPixelColor) {
 
     Handle<Object> out = NanNew<Object>();
 
+    // Color values are sent out as a more managable 0-255...
     out->Set(NanNew<String>("x"), NanNew<Integer>(xValue));
     out->Set(NanNew<String>("y"), NanNew<Integer>(yValue));
-    out->Set(NanNew<String>("red"), NanNew<Integer>(color.redQuantum()));
-    out->Set(NanNew<String>("green"), NanNew<Integer>(color.greenQuantum()));
-    out->Set(NanNew<String>("blue"), NanNew<Integer>(color.blueQuantum()));
-    out->Set(NanNew<String>("opacity"), NanNew<Integer>(color.alphaQuantum()));
+    out->Set(NanNew<String>("red"), NanNew<Integer>(color.redQuantum() / 256));
+    out->Set(NanNew<String>("green"), NanNew<Integer>(color.greenQuantum() / 256));
+    out->Set(NanNew<String>("blue"), NanNew<Integer>(color.blueQuantum() / 256));
+    out->Set(NanNew<String>("opacity"), NanNew<Integer>(color.alphaQuantum() / 256));
     NanReturnValue(out);
 }
 
