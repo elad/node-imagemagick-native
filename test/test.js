@@ -383,3 +383,19 @@ test( 'composite image not source image',function(t) {
     t.notSame( buffer,srcData );
     t.end();
 });
+
+test( 'get pixel colors: pixel colors from each 6x6 square', function(t) {
+    var srcData = require('fs').readFileSync("./test/test.getPixelColor.png");
+
+    for (var i = 0; i < 5; i++) {
+        var targetInfo = {
+            srcData: srcData,
+            x: (6 * i),
+            y: 0
+        };
+        var pixelInfo = imagemagick.getPixelColor(targetInfo);        
+        console.log(pixelInfo);        
+    }    
+    t.end();
+
+});

@@ -326,6 +326,67 @@ NAN_METHOD(Identify) {
 //   args[ 0 ]: options. required, object with following key,values
 //              {
 //                  srcData:        required. Buffer with binary image data
+//                  x:              required. X coordinate of the pixel
+//                  y:              required. Y coordinate of the pixel
+//              }
+NAN_METHOD(GetPixelColor) {
+    NanScope();
+    MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
+
+    if ( args.Length() != 1 ) {
+        return NanThrowError("getPixelColor() requires 1 (option) argument!");
+    }
+    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        return NanThrowError("getPixelColor()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    }
+
+    int xValue = obj->Get( NanNew<String>("x") )->Uint32Value();
+    int yValue = obj->Get( NanNew<String>("y") )->Uint32Value();  
+
+    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData));
+
+    Magick::Image image;    
+    try {
+        image.read( srcBlob );        
+    }
+    catch (std::exception& err) {
+        std::string what (err.what());
+        std::string message = std::string("image.read failed with error: ") + what;
+        return NanThrowError(message.c_str());
+    }
+    catch (...) {
+        return NanThrowError("unhandled error");
+    }
+
+    int w = image.columns();
+    int h = image.rows();    
+
+    if (xValue > w || yValue > h || xValue < 0 || yValue < 0) {
+        return NanThrowError("x/y values are beyond the image\'s dimensions");
+    }
+
+    Magick::PixelPacket *pixels = image.getPixels(0, 0, w, h);
+    Magick::Color color = pixels[w * yValue + xValue];
+
+    Handle<Object> out = NanNew<Object>();
+
+    // Color values are sent out as a more managable 0-255...
+    out->Set(NanNew<String>("x"), NanNew<Integer>(xValue));
+    out->Set(NanNew<String>("y"), NanNew<Integer>(yValue));
+    out->Set(NanNew<String>("red"), NanNew<Integer>(color.redQuantum() / 256));
+    out->Set(NanNew<String>("green"), NanNew<Integer>(color.greenQuantum() / 256));
+    out->Set(NanNew<String>("blue"), NanNew<Integer>(color.blueQuantum() / 256));
+    out->Set(NanNew<String>("opacity"), NanNew<Integer>(color.alphaQuantum() / 256));
+    NanReturnValue(out);
+}
+
+// input
+//   args[ 0 ]: options. required, object with following key,values
+//              {
+//                  srcData:        required. Buffer with binary image data
 //                  colors:         optional. 5 by default
 //                  debug:          optional. 1 or 0
 //              }
@@ -559,12 +620,14 @@ void init(Handle<Object> exports) {
     NODE_SET_METHOD(exports, "quantizeColors", QuantizeColors);
     NODE_SET_METHOD(exports, "composite", Composite);
     NODE_SET_METHOD(exports, "version", Version);
+    NODE_SET_METHOD(exports, "getPixelColor", GetPixelColor);
 #else
     exports->Set(NanNew<String>("convert"), FunctionTemplate::New(Convert)->GetFunction());
     exports->Set(NanNew<String>("identify"), FunctionTemplate::New(Identify)->GetFunction());
     exports->Set(NanNew<String>("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
     exports->Set(NanNew<String>("composite"), FunctionTemplate::New(Composite)->GetFunction());
     exports->Set(NanNew<String>("version"), FunctionTemplate::New(Version)->GetFunction());
+    exports->Set(NanNew<String>("getPixelColor"), FunctionTemplate::New(GetPixelColor)->GetFunction());
 #endif
 }
 
