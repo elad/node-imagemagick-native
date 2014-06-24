@@ -387,15 +387,22 @@ test( 'composite image not source image',function(t) {
 test( 'get pixel colors: pixel colors from each 6x6 square', function(t) {
     var srcData = require('fs').readFileSync("./test/test.getPixelColor.png");
 
-    for (var i = 0; i < 5; i++) {
-        var targetInfo = {
-            srcData: srcData,
-            x: (6 * i),
-            y: 0
-        };
-        var pixelInfo = imagemagick.getPixelColor(targetInfo);        
-        console.log(pixelInfo);        
-    }    
+    var targetInfo = {
+        srcData : srcData,
+        x       : 0, // (6 * i),
+        y       : 0,
+        columns : 1,
+        rows    : 1
+    };
+    var pixelInfo = imagemagick.getConstPixels(targetInfo);
+    t.equal(pixelInfo.length, 1);
+    // don't test exact pixel value, it may differ according to quantum depth
+    t.equal(typeof(pixelInfo[0].red), "number");
+    t.equal(typeof(pixelInfo[0].green), "number");
+    t.equal(typeof(pixelInfo[0].blue), "number");
+    t.equal(typeof(pixelInfo[0].opacity), "number");
+    if (debug) {
+        console.log(pixelInfo);
+    }
     t.end();
-
 });
