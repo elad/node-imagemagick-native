@@ -631,6 +631,12 @@ NAN_METHOD(Version) {
     NanReturnValue(NanNew<String>(MagickLibVersionText));
 }
 
+NAN_METHOD(GetQuantumDepth) {
+    NanScope();
+
+    NanReturnValue(NanNew<Integer>(MAGICKCORE_QUANTUM_DEPTH));
+}
+
 void init(Handle<Object> exports) {
 #if NODE_MODULE_VERSION >= 14
     NODE_SET_METHOD(exports, "convert", Convert);
@@ -639,6 +645,7 @@ void init(Handle<Object> exports) {
     NODE_SET_METHOD(exports, "composite", Composite);
     NODE_SET_METHOD(exports, "version", Version);
     NODE_SET_METHOD(exports, "getConstPixels", GetConstPixels);
+    NODE_SET_METHOD(exports, "quantumDepth", GetQuantumDepth); // QuantumDepth is already defined
 #else
     exports->Set(NanNew<String>("convert"), FunctionTemplate::New(Convert)->GetFunction());
     exports->Set(NanNew<String>("identify"), FunctionTemplate::New(Identify)->GetFunction());
@@ -646,6 +653,7 @@ void init(Handle<Object> exports) {
     exports->Set(NanNew<String>("composite"), FunctionTemplate::New(Composite)->GetFunction());
     exports->Set(NanNew<String>("version"), FunctionTemplate::New(Version)->GetFunction());
     exports->Set(NanNew<String>("getConstPixels"), FunctionTemplate::New(GetConstPixels)->GetFunction());
+    exports->Set(NanNew<String>("quantumDepth"), FunctionTemplate::New(GetQuantumDepth)->GetFunction());
 #endif
 }
 

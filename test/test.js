@@ -406,3 +406,10 @@ test( 'get pixel colors: pixel colors from each 6x6 square', function(t) {
     }
     t.end();
 });
+
+test( 'quantumDepth', function(t) {
+    var q = imagemagick.quantumDepth();
+    t.equal(typeof(q), "number");
+    t.equal(q >= 8, true);
+    t.end();
+});
