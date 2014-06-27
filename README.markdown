@@ -121,6 +121,47 @@ The `options` argument can have following values:
 
 This library currently provide only these, please try [node-imagemagick](https://github.com/rsms/node-imagemagick/) if you want more.
 
+### getConstPixels( options )
+
+Get pixels of provided rectangular region.
+
+The `options` argument can have following values:
+
+    {
+        srcData:        required. Buffer with binary image data
+        x:              required. x,y,columns,rows provide the area of interest.
+        y:              required.
+        columns:        required.
+        rows:           required.
+    }
+
+Example usage:
+
+    // retrieve first pixel of image
+    var pixels = imagemagick.getConstPixels({
+        srcData: imageBuffer, // white image
+        x: 0,
+        y: 0,
+        columns: 1,
+        rows: 1
+    });
+
+Returns:
+
+    [ { red: 65535, green: 65535, blue: 65535, opacity: 65535 } ]
+
+Where each color value's size is `imagemagick.quantumDepth` bits.
+
+### version
+
+Return ImageMagick's version as string.  
+ex: "6.7.7"
+
+### quantumDepth
+
+Return ImageMagick's QuantumDepth, which is defined in compile time.  
+ex: 16
+
 ## Installation
 
 ### Linux / Mac

@@ -383,3 +383,33 @@ test( 'composite image not source image',function(t) {
     t.notSame( buffer,srcData );
     t.end();
 });
+
+test( 'get pixel colors: pixel colors from each 6x6 square', function(t) {
+    var srcData = require('fs').readFileSync("./test/test.getPixelColor.png");
+
+    var targetInfo = {
+        srcData : srcData,
+        x       : 0, // (6 * i),
+        y       : 0,
+        columns : 1,
+        rows    : 1
+    };
+    var pixelInfo = imagemagick.getConstPixels(targetInfo);
+    t.equal(pixelInfo.length, 1);
+    // don't test exact pixel value, it may differ according to quantum depth
+    t.equal(typeof(pixelInfo[0].red), "number");
+    t.equal(typeof(pixelInfo[0].green), "number");
+    t.equal(typeof(pixelInfo[0].blue), "number");
+    t.equal(typeof(pixelInfo[0].opacity), "number");
+    if (debug) {
+        console.log(pixelInfo);
+    }
+    t.end();
+});
+
+test( 'quantumDepth', function(t) {
+    var q = imagemagick.quantumDepth();
+    t.equal(typeof(q), "number");
+    t.equal(q >= 8, true);
+    t.end();
+});

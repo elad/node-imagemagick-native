@@ -326,6 +326,85 @@ NAN_METHOD(Identify) {
 //   args[ 0 ]: options. required, object with following key,values
 //              {
 //                  srcData:        required. Buffer with binary image data
+//                  x:              required. x,y,columns,rows provide the area of interest.
+//                  y:              required.
+//                  columns:        required.
+//                  rows:           required.
+//              }
+NAN_METHOD(GetConstPixels) {
+    NanScope();
+    MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
+
+    if ( args.Length() != 1 ) {
+        return NanThrowError("getConstPixels() requires 1 (option) argument!");
+    }
+    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        return NanThrowError("getConstPixels()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    }
+
+    unsigned int xValue       = obj->Get( NanNew<String>("x") )->Uint32Value();
+    unsigned int yValue       = obj->Get( NanNew<String>("y") )->Uint32Value();  
+    unsigned int columnsValue = obj->Get( NanNew<String>("columns") )->Uint32Value();  
+    unsigned int rowsValue    = obj->Get( NanNew<String>("rows") )->Uint32Value();  
+
+    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
+    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
+    if (debug) printf( "debug: on\n" );
+    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
+
+    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData));
+
+    Magick::Image image;    
+    try {
+        image.read( srcBlob );        
+    }
+    catch (std::exception& err) {
+        std::string what (err.what());
+        std::string message = std::string("image.read failed with error: ") + what;
+        std::size_t found   = what.find( "warn" );
+        if (ignoreWarnings && (found != std::string::npos)) {
+            if (debug) printf("warning: %s\n", message.c_str());
+        }
+        else {
+            return NanThrowError(message.c_str());
+        }
+    }
+    catch (...) {
+        return NanThrowError("unhandled error");
+    }
+
+    size_t w = image.columns();
+    size_t h = image.rows();    
+
+    if (xValue+columnsValue > w || yValue+rowsValue > h) {
+        return NanThrowError("x/y/columns/rows values are beyond the image\'s dimensions");
+    }
+
+    const Magick::PixelPacket *pixels = image.getConstPixels(xValue, yValue, columnsValue, rowsValue);
+
+    Handle<Object> out = NanNew<Array>();
+    for (unsigned int i=0; i<columnsValue * rowsValue; i++) {
+        Magick::PixelPacket pixel = pixels[ i ];
+        Local<Object> color = NanNew<Object>();
+
+        color->Set(NanNew<String>("red"),     NanNew<Integer>(pixel.red));
+        color->Set(NanNew<String>("green"),   NanNew<Integer>(pixel.green));
+        color->Set(NanNew<String>("blue"),    NanNew<Integer>(pixel.blue));
+        color->Set(NanNew<String>("opacity"), NanNew<Integer>(pixel.opacity));
+        
+        out->Set(i, color);
+    }
+
+    NanReturnValue(out);
+}
+
+// input
+//   args[ 0 ]: options. required, object with following key,values
+//              {
+//                  srcData:        required. Buffer with binary image data
 //                  colors:         optional. 5 by default
 //                  debug:          optional. 1 or 0
 //              }
@@ -552,6 +631,12 @@ NAN_METHOD(Version) {
     NanReturnValue(NanNew<String>(MagickLibVersionText));
 }
 
+NAN_METHOD(GetQuantumDepth) {
+    NanScope();
+
+    NanReturnValue(NanNew<Integer>(MAGICKCORE_QUANTUM_DEPTH));
+}
+
 void init(Handle<Object> exports) {
 #if NODE_MODULE_VERSION >= 14
     NODE_SET_METHOD(exports, "convert", Convert);
@@ -559,12 +644,16 @@ void init(Handle<Object> exports) {
     NODE_SET_METHOD(exports, "quantizeColors", QuantizeColors);
     NODE_SET_METHOD(exports, "composite", Composite);
     NODE_SET_METHOD(exports, "version", Version);
+    NODE_SET_METHOD(exports, "getConstPixels", GetConstPixels);
+    NODE_SET_METHOD(exports, "quantumDepth", GetQuantumDepth); // QuantumDepth is already defined
 #else
     exports->Set(NanNew<String>("convert"), FunctionTemplate::New(Convert)->GetFunction());
     exports->Set(NanNew<String>("identify"), FunctionTemplate::New(Identify)->GetFunction());
     exports->Set(NanNew<String>("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
     exports->Set(NanNew<String>("composite"), FunctionTemplate::New(Composite)->GetFunction());
     exports->Set(NanNew<String>("version"), FunctionTemplate::New(Version)->GetFunction());
+    exports->Set(NanNew<String>("getConstPixels"), FunctionTemplate::New(GetConstPixels)->GetFunction());
+    exports->Set(NanNew<String>("quantumDepth"), FunctionTemplate::New(GetQuantumDepth)->GetFunction());
 #endif
 }
 
