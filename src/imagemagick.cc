@@ -260,6 +260,75 @@ NAN_METHOD(Convert) {
     NanReturnValue(retBuffer);
 }
 
+class IdentifyWorker : public NanAsyncWorker
+{
+public:
+    IdentifyWorker(NanCallback *callback, char* srcData, size_t length, int debug, int ignoreWarnings)
+      : NanAsyncWorker(callback),
+        srcData(srcData),
+        length(length),
+        debug(debug),
+        ignoreWarnings(ignoreWarnings) {
+    }
+    ~IdentifyWorker() {
+    }
+
+    void Execute () {
+        Magick::Blob srcBlob( srcData, length );
+
+        try {
+            image.read( srcBlob );
+        }
+        catch (std::exception& err) {
+            std::string what (err.what());
+            std::string message = std::string("image.read failed with error: ") + what;
+            std::size_t found   = what.find( "warn" );
+            if (ignoreWarnings && (found != std::string::npos)) {
+                if (debug) printf("warning: %s\n", message.c_str());
+            }
+            else {
+                SetErrorMessage(message.c_str());
+                return;
+            }
+        }
+        catch (...) {
+            SetErrorMessage("unhandled error");
+            return;
+        }
+
+        if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
+    }
+
+    void HandleOKCallback () {
+        NanScope();
+
+        Local<Object> out = NanNew<Object>();
+
+        out->Set(NanNew<String>("width"), NanNew<Integer>(image.columns()));
+        out->Set(NanNew<String>("height"), NanNew<Integer>(image.rows()));
+        out->Set(NanNew<String>("depth"), NanNew<Integer>(image.depth()));
+        out->Set(NanNew<String>("format"), NanNew<String>(image.magick().c_str()));
+
+        Local<Object> out_exif = NanNew<Object>();
+        out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(image.attribute("EXIF:Orientation").c_str())));
+        out->Set(NanNew<String>("exif"), out_exif);
+
+        Local<Value> argv[] = {
+              NanNull()
+            , out
+        };
+
+        callback->Call(2, argv);
+    };
+
+    private:
+        char* srcData;
+        size_t length;
+        int debug;
+        int ignoreWarnings;
+        Magick::Image image;
+};
+
 // input
 //   args[ 0 ]: options. required, object with following key,values
 //              {
@@ -270,14 +339,14 @@ NAN_METHOD(Identify) {
     NanScope();
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
-    if ( args.Length() != 1 ) {
-        return NanThrowError("identify() requires 1 (option) argument!");
+    if ( args.Length() != 2 ) {
+        return NanThrowError("identify() requires 2 arguments!");
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
-
     Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
-        return NanThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
+        NanThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
+        NanReturnUndefined();
     }
 
     int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
@@ -285,41 +354,9 @@ NAN_METHOD(Identify) {
     if (debug) printf( "debug: on\n" );
     if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
-    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
-
-    Magick::Image image;
-    try {
-        image.read( srcBlob );
-    }
-    catch (std::exception& err) {
-        std::string what (err.what());
-        std::string message = std::string("image.read failed with error: ") + what;
-        std::size_t found   = what.find( "warn" );
-        if (ignoreWarnings && (found != std::string::npos)) {
-            if (debug) printf("warning: %s\n", message.c_str());
-        }
-        else {
-            return NanThrowError(message.c_str());
-        }
-    }
-    catch (...) {
-        return NanThrowError("unhandled error");
-    }
-
-    if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
-
-    Handle<Object> out = NanNew<Object>();
-
-    out->Set(NanNew<String>("width"), NanNew<Integer>(image.columns()));
-    out->Set(NanNew<String>("height"), NanNew<Integer>(image.rows()));
-    out->Set(NanNew<String>("depth"), NanNew<Integer>(image.depth()));
-    out->Set(NanNew<String>("format"), NanNew<String>(image.magick().c_str()));
-
-    Handle<Object> out_exif = NanNew<Object>();
-    out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(image.attribute("EXIF:Orientation").c_str())));
-    out->Set(NanNew<String>("exif"), out_exif);
-
-    NanReturnValue(out);
+    NanCallback *callback = new NanCallback(args[1].As<Function>());
+    NanAsyncQueueWorker(new IdentifyWorker(callback, Buffer::Data(srcData), Buffer::Length(srcData), debug, ignoreWarnings));
+    NanReturnUndefined();
 }
 
 // input
