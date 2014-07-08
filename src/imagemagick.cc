@@ -196,7 +196,12 @@ NAN_METHOD(Convert) {
                 // JPEG background becomes black if set transparent here
                 transparent.alpha( 1. );
             }
-            image.extent( cropGeometry, transparent );
+
+            #if MagickLibVersion > 0x654
+                image.extent( cropGeometry, transparent );
+            #else
+                image.extent( cropGeometry );
+            #endif
         }
         else if ( strcmp ( resizeStyle, "aspectfit" ) == 0 ) {
             // keep aspect ratio, get the maximum image which fits inside specified size
