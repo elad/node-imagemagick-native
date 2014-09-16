@@ -6,8 +6,7 @@ var ben       = require('ben')
 ,   debug     = 0
 ;
 
-var file  = "./test/test.jpg";
-
+var file  = process.argv[2];
 var body  = require('fs').readFileSync( file );
 
 function resize (callback) {
@@ -32,6 +31,9 @@ function resize_native (callback) {
         resizeStyle: 'aspectfit',
         quality: 80,
         format: 'JPEG',
+        filter: 'Lagrange',
+        blur: 0.8,
+        strip: true,
         debug: debug
     });
     assert( stdout.length > 0 );
@@ -42,34 +44,36 @@ function resize_native (callback) {
 
 async.waterfall([
     function (callback) {
-        console.log( "before resize: ", process.memoryUsage() );
+        // console.log( "before resize: ", process.memoryUsage() );
         callback();
     },
     function (callback) {
+        // callback();
         ben.async( resize, function (ms) {
             console.log( "resize: " + ms + "ms per iteration" );
             callback();
         });
     },
     function (callback) {
-        console.log( "after resize: ", process.memoryUsage() );
+        // console.log( "after resize: ", process.memoryUsage() );
         callback();
     },
     function (callback) {
         resize_native( callback );
     },
     function (callback) {
-        console.log( "after resize_native 1st: ", process.memoryUsage() );
+        // console.log( "after resize_native 1st: ", process.memoryUsage() );
         callback();
     },
     function (callback) {
+        // callback();
         ben.async( resize_native, function (ms) {
             console.log( "resize_native: " + ms + "ms per iteration" );
             callback();
         });
     },
     function (callback) {
-        console.log( "after resize_native: ", process.memoryUsage() );
+        // console.log( "after resize_native: ", process.memoryUsage() );
         callback();
     },
 ], function(err) {
