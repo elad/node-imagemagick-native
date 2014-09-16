@@ -113,6 +113,21 @@ test( 'convert blur', function (t) {
     t.end();
 });
 
+test( 'convert strip', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "./test/test.png" ),
+        width: 100,
+        height: 100,
+        quality: 80,
+        format: 'PNG',
+        strip: true,
+        debug: debug
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    saveToFileIfDebug( buffer, "./test/out.png-strip.png" );
+    t.end();
+});
+
 test( 'convert png -> png aspectfill', function (t) {
     var buffer = imagemagick.convert({
         srcData: require('fs').readFileSync( "./test/test.png" ), // 58x66

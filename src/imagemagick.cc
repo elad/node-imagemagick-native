@@ -62,6 +62,7 @@ private:
 //                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
 //                  filter:      optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
 //                  blur:        optional. ex: 0.8
+//                  strip:       optional. default: false. strips comments out from image.
 //                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
 //                  debug:       optional. 1 or 0
 //              }
@@ -123,6 +124,12 @@ NAN_METHOD(Convert) {
 
     unsigned int height = obj->Get( NanNew<String>("height") )->Uint32Value();
     if (debug) printf( "height: %d\n", height );
+
+    Local<Value> stripValue = obj->Get( NanNew<String>("strip") );
+    if ( ! stripValue->IsUndefined() && stripValue->BooleanValue() ) {
+        if (debug) printf( "strip: true\n" );
+        image.strip();
+    }
 
     Local<Value> resizeStyleValue = obj->Get( NanNew<String>("resizeStyle") );
     const char* resizeStyle = "aspectfill";
