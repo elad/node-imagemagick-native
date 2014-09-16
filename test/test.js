@@ -98,6 +98,21 @@ test( 'convert filter Lagrange', function (t) {
     t.end();
 });
 
+test( 'convert blur', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "./test/test.png" ), // 58x66
+        width: 100,
+        height: 100,
+        quality: 80,
+        format: 'PNG',
+        blur: 0.8,
+        debug: debug
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    saveToFileIfDebug( buffer, "./test/out.png-blur.png" );
+    t.end();
+});
+
 test( 'convert png -> png aspectfill', function (t) {
     var buffer = imagemagick.convert({
         srcData: require('fs').readFileSync( "./test/test.png" ), // 58x66

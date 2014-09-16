@@ -61,6 +61,7 @@ private:
 //                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
 //                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
 //                  filter:      optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
+//                  blur:        optional. ex: 0.8
 //                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
 //                  debug:       optional. 1 or 0
 //              }
@@ -155,6 +156,13 @@ NAN_METHOD(Convert) {
         }
     }
 
+    Local<Value> blurValue = obj->Get( NanNew<String>("blur") );
+    if ( ! blurValue->IsUndefined() ) {
+        double blur = blurValue->NumberValue();
+        if (debug) printf( "blur: %.1f\n", blur );
+        image.image()->blur = blur;
+    }
+
     if ( width || height ) {
         if ( ! width  ) { width  = image.columns(); }
         if ( ! height ) { height = image.rows();    }
@@ -191,7 +199,7 @@ NAN_METHOD(Convert) {
             if (debug) printf( "resize to: %d, %d\n", resizewidth, resizeheight );
             Magick::Geometry resizeGeometry( resizewidth, resizeheight, 0, 0, 0, 0 );
             try {
-                image.resize( resizeGeometry );
+                image.zoom( resizeGeometry );
             }
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
@@ -226,7 +234,7 @@ NAN_METHOD(Convert) {
             if (debug) printf( "resize to: %s\n", geometryString );
 
             try {
-                image.resize( geometryString );
+                image.zoom( geometryString );
             }
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
@@ -244,7 +252,7 @@ NAN_METHOD(Convert) {
             if (debug) printf( "resize to: %s\n", geometryString );
 
             try {
-                image.resize( geometryString );
+                image.zoom( geometryString );
             }
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
@@ -476,7 +484,7 @@ NAN_METHOD(QuantizeColors) {
 
     if (debug) printf( "resize to: %d, %d\n", (int) rows, (int) columns );
     Magick::Geometry resizeGeometry( rows, columns, 0, 0, 0, 0 );
-    image.resize( resizeGeometry );
+    image.zoom( resizeGeometry );
 
     if (debug) printf("totalColors before: %d\n", (int) image.totalColors());
 
