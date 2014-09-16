@@ -60,6 +60,7 @@ private:
 //                  height:      optional. px.
 //                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
 //                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
+//                  filter:      optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
 //                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
 //                  debug:       optional. 1 or 0
 //              }
@@ -137,6 +138,21 @@ NAN_METHOD(Convert) {
         format = NanCString(formatValue, &count);
         if (debug) printf( "format: %s\n", format );
         image.magick( format );
+    }
+
+    Local<Value> filterValue = obj->Get( NanNew<String>("filter") );
+    if ( ! filterValue->IsUndefined() ) {
+        size_t count;
+        const char *filter = NanCString(filterValue, &count);
+
+        ssize_t option_info = MagickCore::ParseCommandOption(MagickCore::MagickFilterOptions, Magick::MagickFalse, filter);
+        if (option_info != -1) {
+            if (debug) printf( "filter: %s\n", filter );
+            image.filterType( (Magick::FilterTypes)option_info );
+        }
+        else {
+            return NanThrowError("filter not supported");
+        }
     }
 
     if ( width || height ) {
