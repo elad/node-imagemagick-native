@@ -16,7 +16,10 @@
         height: 100,
         resizeStyle: "aspectfill",
         quality: 80,
-        format: 'JPEG'
+        format: 'JPEG',
+        filter: 'Lagrange',
+        blur: 0.8,
+        strip: true
     });
 
     require('fs').writeFileSync('./test/out.png', resizedBuffer, 'binary');
@@ -40,6 +43,9 @@ The `options` argument can have following values:
                         aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
                         fill:       forget aspect ratio, get the exact provided size
         format:         optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
+        filter:         optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
+        blur:           optional. ex: 0.8
+        strip:          optional. default: false. strips comments out from image.
         rotate:         optional. degrees.
         debug:          optional. 1 or 0
         ignoreWarnings: optional. 1 or 0
