@@ -16,7 +16,7 @@
   "contributors": [],
   "main": "./index.js",
   "scripts": {
-    "test": "tap test/test.js",
+    "test": "tap test/test.js test/test.async.js",
     "install": "node-gyp rebuild"
   },
   "engines": {
