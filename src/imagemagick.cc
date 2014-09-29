@@ -8,6 +8,7 @@
 
 #include "imagemagick.h"
 #include <list>
+#include <sstream>
 #include <string.h>
 #include <exception>
 
@@ -412,8 +413,7 @@ void DoConvertAsync(uv_work_t* req) {
     }
 
     if( ! async_data->blur.empty() ) {
-        std::string::size_type sz; // alias of size_t
-        double blur = std::stod (async_data->blur,&sz);
+        double blur = atof (async_data->blur.c_str());
         if (debug) printf( "blur: %.1f\n", blur );
         image.image()->blur = blur;
     }
@@ -633,7 +633,9 @@ NAN_METHOD(ConvertAsync) {
     std::string blur = "";
     if ( ! blurValue->IsUndefined() ) {
         double blurD = blurValue->NumberValue();
-        blur = std::to_string(blurD);
+        std::ostringstream strs;
+        strs << blurD;
+        blur = strs.str();
     }
 
     unsigned int quality = obj->Get( NanNew<String>("quality") )->Uint32Value();
