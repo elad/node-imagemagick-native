@@ -220,6 +220,8 @@ Then:
 
 See `node test/benchmark.js` for details.
 
+**Note:** `node-imagemagick-native`'s primary advantage is that it uses ImageMagick's API directly rather than by executing one of its command line tools. This means that it will be much faster when the amount of time spent inside the library is small and less so otherwise. See [issue #46](https://github.com/mash/node-imagemagick-native/issues/46) for discussion.
+
 
 ## License (MIT)
 
