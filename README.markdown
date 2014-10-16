@@ -37,6 +37,7 @@ The `options` argument can have following values:
         quality:        optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
         width:          optional. px.
         height:         optional. px.
+        density         optional. Integer dpi value to convert
         resizeStyle:    optional. default: "aspectfill". can be "aspectfit", "fill"
                         aspectfill: keep aspect ratio, get the exact provided size,
                                     crop top/bottom or left/right if necessary
@@ -70,6 +71,10 @@ The method returns an object similar to:
         width: 3904,
         height: 2622,
         depth: 8,
+        density : {
+            width : 300,
+            height : 300
+        },
         exif: {
             orientation: 0 # 0 if none exists
         }

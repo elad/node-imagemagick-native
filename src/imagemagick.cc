@@ -288,6 +288,11 @@ NAN_METHOD(Convert) {
         image.rotate(rotate);
     }
 
+    int density = obj->Get( NanNew<String>("density") )->Int32Value();
+    if (density) {
+        image.density(Magick::Geometry(density, density));
+    }
+
     Magick::Blob dstBlob;
     image.write( &dstBlob );
 
@@ -350,6 +355,12 @@ NAN_METHOD(Identify) {
     out->Set(NanNew<String>("height"), NanNew<Integer>(image.rows()));
     out->Set(NanNew<String>("depth"), NanNew<Integer>(image.depth()));
     out->Set(NanNew<String>("format"), NanNew<String>(image.magick().c_str()));
+
+    Handle<Object> out_density = NanNew<Object>();
+    Magick::Geometry density = image.density();
+    out_density->Set(NanNew<String>("width"), NanNew<Integer>(density.width()));
+    out_density->Set(NanNew<String>("height"), NanNew<Integer>(density.height()));
+    out->Set(NanNew<String>("density"), out_density);
 
     Handle<Object> out_exif = NanNew<Object>();
     out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(image.attribute("EXIF:Orientation").c_str())));
