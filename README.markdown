@@ -190,6 +190,14 @@ Tested with ImageMagick 6.7.7 on CentOS6 and MacOS10.7, Ubuntu12.04 .
 
     sudo apt-get install libmagick++-dev
 
+**Note about installing on RHEL/CentOs:**
+If the version of ImageMagick required by `node-imagemagick-native` is not available in an official RPM repository, please try the `-last` version offered by Les RPM de Remi, for example:
+```
+sudo yum remove -y ImageMagick
+sudo yum install -y http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
+sudo yum install -y --enablerepo=remi ImageMagick-last-c++-devel
+```
+
 Make sure you can find Magick++-config in your PATH.
 Then:
 
