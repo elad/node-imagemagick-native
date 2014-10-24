@@ -99,6 +99,14 @@ NAN_METHOD(Convert) {
     Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
 
     Magick::Image image;
+
+    Local<Value> srcFormatValue = obj->Get( String::NewSymbol("srcFormat") );
+    String::AsciiValue srcFormat( srcFormatValue->ToString() );
+    if ( ! srcFormatValue->IsUndefined() ) {
+        if (debug) printf( "srcFormat: %s\n", *srcFormat );
+        image.magick( *srcFormat );
+    }
+
     try {
         image.read( srcBlob );
     }

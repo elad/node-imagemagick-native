@@ -34,6 +34,7 @@ The `options` argument can have following values:
 
     {
         srcData:        required. Buffer with binary image data
+        srcFormat:      optional. force source format if not detected (e.g. "ICO"), one of http://www.imagemagick.org/script/formats.php
         quality:        optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
         width:          optional. px.
         height:         optional. px.
@@ -43,7 +44,7 @@ The `options` argument can have following values:
                                     crop top/bottom or left/right if necessary
                         aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
                         fill:       forget aspect ratio, get the exact provided size
-        format:         optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
+        format:         optional. output format, one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
         filter:         optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
         blur:           optional. ex: 0.8
         strip:          optional. default: false. strips comments out from image.
