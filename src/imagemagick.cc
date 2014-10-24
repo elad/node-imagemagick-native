@@ -296,6 +296,12 @@ NAN_METHOD(Convert) {
         image.rotate(rotate);
     }
 
+    int flip = obj->Get( String::NewSymbol("flip") )->Uint32Value();
+    if ( flip ) {
+        if ( debug ) printf( "flip\n" );
+        image.flip();
+    }
+
     int density = obj->Get( NanNew<String>("density") )->Int32Value();
     if (density) {
         image.density(Magick::Geometry(density, density));

@@ -49,6 +49,7 @@ The `options` argument can have following values:
         blur:           optional. ex: 0.8
         strip:          optional. default: false. strips comments out from image.
         rotate:         optional. degrees.
+        flip:           optional. vertical flip, true or false.
         debug:          optional. 1 or 0
         ignoreWarnings: optional. 1 or 0
     }
