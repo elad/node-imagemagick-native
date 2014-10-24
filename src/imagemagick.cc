@@ -110,16 +110,15 @@ NAN_METHOD(Convert) {
     try {
         image.read( srcBlob );
     }
+    catch (Magick::Warning& warning) {
+        if (!ignoreWarnings) {
+            return NanThrowError(warning.what());
+        } else if (debug) {
+            printf("warning: %s\n", warning.what());
+        }
+    }
     catch (std::exception& err) {
-        std::string what (err.what());
-        std::string message = std::string("image.read failed with error: ") + what;
-        std::size_t found   = what.find( "warn" );
-        if (ignoreWarnings && (found != std::string::npos)) {
-            if (debug) printf("warning: %s\n", message.c_str());
-        }
-        else {
-            return NanThrowError(message.c_str());
-        }
+        return NanThrowError(err.what());
     }
     catch (...) {
         return NanThrowError("unhandled error");
