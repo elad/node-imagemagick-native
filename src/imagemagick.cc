@@ -229,7 +229,7 @@ NAN_METHOD(Convert) {
             Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
 
             Magick::Color transparent( "white" );
-            if ( strcmp( format, "PNG" ) == 0 ) {
+            if ( format && strcmp( format, "PNG" ) == 0 ) {
                 // make background transparent for PNG
                 // JPEG background becomes black if set transparent here
                 transparent.alpha( 1. );
