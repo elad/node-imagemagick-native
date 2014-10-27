@@ -445,7 +445,7 @@ NAN_METHOD(Convert) {
         if (!context->error.empty()) {
             const char *err_str = context->error.c_str();
             delete context;
-            return NanThrowError(NanNew<String>(err_str));
+            return NanThrowError(err_str);
         }
         else {
             const Handle<Object> retBuffer = NanNewBufferHandle(context->dstBlob.length());
