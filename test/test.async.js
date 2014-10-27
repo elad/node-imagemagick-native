@@ -33,7 +33,7 @@ test( 'convert filter Lagrange', function (t) {
 
 test( 'identify results async', function (t) {
     t.plan(5);
-    imagemagick.identifyAsync({
+    imagemagick.identify({
         srcData: require('fs').readFileSync( "test.png" )
     },function(err,info){
         t.equal( info.width, 58, 'width is 58' );

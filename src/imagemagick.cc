@@ -491,74 +491,6 @@ NAN_METHOD(ConvertAsync) {
     }
 }
 
-// input
-//   args[ 0 ]: options. required, object with following key,values
-//              {
-//                  srcData:        required. Buffer with binary image data
-//                  debug:          optional. 1 or 0
-//              }
-NAN_METHOD(Identify) {
-    NanScope();
-    MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
-
-    if ( args.Length() != 1 ) {
-        return NanThrowError("identify() requires 1 (option) argument!");
-    }
-    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
-
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
-    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
-        return NanThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
-    }
-
-    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
-    if (debug) printf( "debug: on\n" );
-    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
-
-    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
-
-    Magick::Image image;
-    try {
-        image.read( srcBlob );
-    }
-    catch (std::exception& err) {
-        std::string what (err.what());
-        std::string message = std::string("image.read failed with error: ") + what;
-        std::size_t found   = what.find( "warn" );
-        if (ignoreWarnings && (found != std::string::npos)) {
-            if (debug) printf("warning: %s\n", message.c_str());
-        }
-        else {
-            return NanThrowError(message.c_str());
-        }
-    }
-    catch (...) {
-        return NanThrowError("unhandled error");
-    }
-
-    if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
-
-    Handle<Object> out = NanNew<Object>();
-
-    out->Set(NanNew<String>("width"), NanNew<Integer>(image.columns()));
-    out->Set(NanNew<String>("height"), NanNew<Integer>(image.rows()));
-    out->Set(NanNew<String>("depth"), NanNew<Integer>(image.depth()));
-    out->Set(NanNew<String>("format"), NanNew<String>(image.magick().c_str()));
-
-    Handle<Object> out_density = NanNew<Object>();
-    Magick::Geometry density = image.density();
-    out_density->Set(NanNew<String>("width"), NanNew<Integer>(density.width()));
-    out_density->Set(NanNew<String>("height"), NanNew<Integer>(density.height()));
-    out->Set(NanNew<String>("density"), out_density);
-
-    Handle<Object> out_exif = NanNew<Object>();
-    out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(image.attribute("EXIF:Orientation").c_str())));
-    out->Set(NanNew<String>("exif"), out_exif);
-
-    NanReturnValue(out);
-}
-
 void DoIdentifyAsync(uv_work_t* req) {
 
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
@@ -594,13 +526,8 @@ void DoIdentifyAsync(uv_work_t* req) {
     async_data->image = image;
 }
 
-void IdentifyAsyncAfter(uv_work_t* req) {
-    NanScope();
-
+void buildIdentifyResult(uv_work_t *req, Handle<Value> *argv) {
     identify_im_async* async_data = static_cast<identify_im_async*>(req->data);
-    delete req;
-
-    Handle<Value> argv[2];
 
     if (!async_data->error.empty()) {
         argv[0] = Exception::Error(NanNew<String>(async_data->error.c_str()));
@@ -627,6 +554,15 @@ void IdentifyAsyncAfter(uv_work_t* req) {
 
         argv[1] = out;
     }
+}
+
+void IdentifyAsyncAfter(uv_work_t* req) {
+    NanScope();
+
+    Handle<Value> argv[2];
+    buildIdentifyResult(req,argv);
+
+    identify_im_async* async_data = static_cast<identify_im_async*>(req->data);
 
     TryCatch try_catch; // don't quite see the necessity of this
 
@@ -634,15 +570,28 @@ void IdentifyAsyncAfter(uv_work_t* req) {
 
     if (try_catch.HasCaught())
         FatalException(try_catch);
-
     delete async_data;
+    delete req;
 }
 
+// input
+//   args[ 0 ]: options. required, object with following key,values
+//              {
+//                  srcData:        required. Buffer with binary image data
+//                  debug:          optional. 1 or 0
+//              }
+//   args[ 1 ]: callback. optional, if present runs async and returns result with callback(error, info)
 NAN_METHOD(IdentifyAsync) {
     NanScope();
 
-    if ( args.Length() != 2 ) {
-        return NanThrowError("identifyAsync() requires 2 (option,callback) arguments!");
+    bool isSync = false;
+
+    if ( args.Length() < 2 ) {
+        isSync = true;
+    }
+
+    if ( args.Length() < 1 ) {
+        return NanThrowError("identify() requires 1 (option) argument!");
     }
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
@@ -661,13 +610,29 @@ NAN_METHOD(IdentifyAsync) {
     async_data->length = Buffer::Length(srcData);
     async_data->debug = debug;
     async_data->ignoreWarnings = ignoreWarnings;
-    async_data->callback = new NanCallback(Local<Function>::Cast(args[1]));
+    if(!isSync){
+        async_data->callback = new NanCallback(Local<Function>::Cast(args[1]));
+    }
 
     uv_work_t* req = new uv_work_t();
     req->data = async_data;
-    uv_queue_work(uv_default_loop(), req, DoIdentifyAsync, (uv_after_work_cb)IdentifyAsyncAfter);
+    if(!isSync) {
+        uv_queue_work(uv_default_loop(), req, DoIdentifyAsync, (uv_after_work_cb)IdentifyAsyncAfter);
 
-    NanReturnUndefined();
+        NanReturnUndefined();
+    } else {
+        DoIdentifyAsync(req);
+        Handle<Value> argv[2];
+        buildIdentifyResult(req,argv);
+        identify_im_async* async_data = static_cast<identify_im_async*>(req->data);
+        delete async_data;
+        delete req;
+        if(argv[0]->IsUndefined()){
+            NanReturnValue(argv[1]);
+        } else {
+            return NanThrowError(argv[0]);
+        }
+    }
 }
 
 // input
@@ -988,8 +953,7 @@ NAN_METHOD(GetQuantumDepth) {
 void init(Handle<Object> exports) {
 #if NODE_MODULE_VERSION >= 14
     NODE_SET_METHOD(exports, "convert", ConvertAsync);
-    NODE_SET_METHOD(exports, "identify", Identify);
-    NODE_SET_METHOD(exports, "identifyAsync", IdentifyAsync);
+    NODE_SET_METHOD(exports, "identify", IdentifyAsync);
     NODE_SET_METHOD(exports, "quantizeColors", QuantizeColors);
     NODE_SET_METHOD(exports, "composite", Composite);
     NODE_SET_METHOD(exports, "version", Version);
@@ -997,8 +961,7 @@ void init(Handle<Object> exports) {
     NODE_SET_METHOD(exports, "quantumDepth", GetQuantumDepth); // QuantumDepth is already defined
 #else
     exports->Set(NanNew<String>("convert"), FunctionTemplate::New(ConvertAsync)->GetFunction());
-    exports->Set(NanNew<String>("identify"), FunctionTemplate::New(Identify)->GetFunction());
-    exports->Set(NanNew<String>("identifyAsync"), FunctionTemplate::New(IdentifyAsync)->GetFunction());
+    exports->Set(NanNew<String>("identify"), FunctionTemplate::New(IdentifyAsync)->GetFunction());
     exports->Set(NanNew<String>("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
     exports->Set(NanNew<String>("composite"), FunctionTemplate::New(Composite)->GetFunction());
     exports->Set(NanNew<String>("version"), FunctionTemplate::New(Version)->GetFunction());
