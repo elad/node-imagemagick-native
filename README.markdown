@@ -34,19 +34,22 @@ The `options` argument can have following values:
 
     {
         srcData:        required. Buffer with binary image data
+        srcFormat:      optional. force source format if not detected (e.g. "ICO"), one of http://www.imagemagick.org/script/formats.php
         quality:        optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
         width:          optional. px.
         height:         optional. px.
+        density         optional. Integer dpi value to convert
         resizeStyle:    optional. default: "aspectfill". can be "aspectfit", "fill"
                         aspectfill: keep aspect ratio, get the exact provided size,
                                     crop top/bottom or left/right if necessary
                         aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
                         fill:       forget aspect ratio, get the exact provided size
-        format:         optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
+        format:         optional. output format, one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
         filter:         optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
         blur:           optional. ex: 0.8
         strip:          optional. default: false. strips comments out from image.
         rotate:         optional. degrees.
+        flip:           optional. vertical flip, true or false.
         debug:          optional. 1 or 0
         ignoreWarnings: optional. 1 or 0
     }
@@ -70,6 +73,10 @@ The method returns an object similar to:
         width: 3904,
         height: 2622,
         depth: 8,
+        density : {
+            width : 300,
+            height : 300
+        },
         exif: {
             orientation: 0 # 0 if none exists
         }
@@ -190,6 +197,22 @@ Then:
 
     npm install imagemagick-native
 
+**Installation notes**
+
+  * RHEL/CentOS: If the version of ImageMagick required by `node-imagemagick-native` is not available in an official RPM repository, please try the `-last` version offered by Les RPM de Remi, for example:
+
+  ```
+  sudo yum remove -y ImageMagick
+  sudo yum install -y http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
+  sudo yum install -y --enablerepo=remi ImageMagick-last-c++-devel
+  ```
+
+  * Mac OS X: You might need to install `pkgconfig` first:
+
+  ```
+  brew install pkgconfig
+  ```
+
 ### Windows
 
 Tested on Windows 7 x64.
@@ -214,6 +237,8 @@ Then:
     imagemagick-native: 0.89ms per iteration
 
 See `node test/benchmark.js` for details.
+
+**Note:** `node-imagemagick-native`'s primary advantage is that it uses ImageMagick's API directly rather than by executing one of its command line tools. This means that it will be much faster when the amount of time spent inside the library is small and less so otherwise. See [issue #46](https://github.com/mash/node-imagemagick-native/issues/46) for discussion.
 
 
 ## License (MIT)

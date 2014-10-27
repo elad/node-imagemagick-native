@@ -138,19 +138,26 @@ NAN_METHOD(Convert) {
     Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
 
     Magick::Image image;
+
+    Local<Value> srcFormatValue = obj->Get( String::NewSymbol("srcFormat") );
+    String::AsciiValue srcFormat( srcFormatValue->ToString() );
+    if ( ! srcFormatValue->IsUndefined() ) {
+        if (debug) printf( "srcFormat: %s\n", *srcFormat );
+        image.magick( *srcFormat );
+    }
+
     try {
         image.read( srcBlob );
     }
+    catch (Magick::Warning& warning) {
+        if (!ignoreWarnings) {
+            return NanThrowError(warning.what());
+        } else if (debug) {
+            printf("warning: %s\n", warning.what());
+        }
+    }
     catch (std::exception& err) {
-        std::string what (err.what());
-        std::string message = std::string("image.read failed with error: ") + what;
-        std::size_t found   = what.find( "warn" );
-        if (ignoreWarnings && (found != std::string::npos)) {
-            if (debug) printf("warning: %s\n", message.c_str());
-        }
-        else {
-            return NanThrowError(message.c_str());
-        }
+        return NanThrowError(err.what());
     }
     catch (...) {
         return NanThrowError("unhandled error");
@@ -260,8 +267,8 @@ NAN_METHOD(Convert) {
             if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
             Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
 
-            Magick::Color transparent( "white" );
-            if ( strcmp( format, "PNG" ) == 0 ) {
+            Magick::Color transparent( "transparent" );
+            if ( format && strcmp( format, "PNG" ) == 0 ) {
                 // make background transparent for PNG
                 // JPEG background becomes black if set transparent here
                 transparent.alpha( 1. );
@@ -325,6 +332,17 @@ NAN_METHOD(Convert) {
     if ( rotate ) {
         if (debug) printf( "rotate: %d\n", rotate );
         image.rotate(rotate);
+    }
+
+    int flip = obj->Get( String::NewSymbol("flip") )->Uint32Value();
+    if ( flip ) {
+        if ( debug ) printf( "flip\n" );
+        image.flip();
+    }
+
+    int density = obj->Get( NanNew<String>("density") )->Int32Value();
+    if (density) {
+        image.density(Magick::Geometry(density, density));
     }
 
     Magick::Blob dstBlob;
@@ -740,6 +758,12 @@ NAN_METHOD(Identify) {
     out->Set(NanNew<String>("height"), NanNew<Integer>(image.rows()));
     out->Set(NanNew<String>("depth"), NanNew<Integer>(image.depth()));
     out->Set(NanNew<String>("format"), NanNew<String>(image.magick().c_str()));
+
+    Handle<Object> out_density = NanNew<Object>();
+    Magick::Geometry density = image.density();
+    out_density->Set(NanNew<String>("width"), NanNew<Integer>(density.width()));
+    out_density->Set(NanNew<String>("height"), NanNew<Integer>(density.height()));
+    out->Set(NanNew<String>("density"), out_density);
 
     Handle<Object> out_exif = NanNew<Object>();
     out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(image.attribute("EXIF:Orientation").c_str())));
