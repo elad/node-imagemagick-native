@@ -478,7 +478,9 @@ NAN_METHOD(ConvertAsync) {
         convert_im_async* async_data = static_cast<convert_im_async*>(req->data);
         delete req;
         if (!async_data->error.empty()) {
-            return NanThrowError(NanNew<String>(async_data->error.c_str()));
+            const char *err_str = async_data->error.c_str();
+            delete async_data;
+            return NanThrowError(NanNew<String>(err_str));
         }
         else {
             const Handle<Object> retBuffer = NanNewBufferHandle(async_data->dstBlob.length());
