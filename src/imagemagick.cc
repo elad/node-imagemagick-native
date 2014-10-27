@@ -235,8 +235,7 @@ void DoConvert(uv_work_t* req) {
             Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
 
             Magick::Color transparent( "transparent" );
-            // if ( strcmp( format, "PNG" ) == 0 ) {
-            if ( context->format == "PNG" ) {
+            if ( strcmp( context->format.c_str(), "PNG" ) == 0 ) {
                 // make background transparent for PNG
                 // JPEG background becomes black if set transparent here
                 transparent.alpha( 1. );
