@@ -52,9 +52,8 @@ private:
     bool diskLimited;
 };
 
-// structs for async calls
-// base
-struct im_async_base {
+// Base context for calls shared on sync and async code paths
+struct im_ctx_base {
     NanCallback * callback;
     std::string error;
 
@@ -63,16 +62,16 @@ struct im_async_base {
     int debug;
     int ignoreWarnings;
 
-    virtual ~im_async_base() {}
+    virtual ~im_ctx_base() {}
 };
-// for identify
-struct identify_im_async : im_async_base {
+// Extra context for identify
+struct identify_im_ctx : im_ctx_base {
     Magick::Image image;
 
-    identify_im_async() {}
+    identify_im_ctx() {}
 };
-// for convert
-struct convert_im_async : im_async_base {
+// Extra context for convert
+struct convert_im_ctx : im_ctx_base {
     unsigned int maxMemory;
 
     unsigned int width;
@@ -91,80 +90,79 @@ struct convert_im_async : im_async_base {
 
     Magick::Blob dstBlob;
 
-    convert_im_async() {}
+    convert_im_ctx() {}
 };
 
-void DoConvertAsync(uv_work_t* req) {
+void DoConvert(uv_work_t* req) {
 
-    convert_im_async* async_data = static_cast<convert_im_async*>(req->data);
+    convert_im_ctx* context = static_cast<convert_im_ctx*>(req->data);
 
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
     LocalResourceLimiter limiter;
 
-    int debug          = async_data->debug;
-    int ignoreWarnings = async_data->ignoreWarnings;
-    if (debug) printf( "debug: on\n" );
-    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
+    int debug = context->debug;
 
-    unsigned int maxMemory = async_data->maxMemory;
-    if (maxMemory > 0) {
-        limiter.LimitMemory(maxMemory);
-        limiter.LimitDisk(maxMemory); // avoid using unlimited disk as cache
-        if (debug) printf( "maxMemory set to: %d\n", maxMemory );
+    if (debug) printf( "debug: on\n" );
+    if (debug) printf( "ignoreWarnings: %d\n", context->ignoreWarnings );
+
+    if (context->maxMemory > 0) {
+        limiter.LimitMemory(context->maxMemory);
+        limiter.LimitDisk(context->maxMemory); // avoid using unlimited disk as cache
+        if (debug) printf( "maxMemory set to: %d\n", context->maxMemory );
     }
 
-    Magick::Blob srcBlob( async_data->srcData, async_data->length );
+    Magick::Blob srcBlob( context->srcData, context->length );
 
     Magick::Image image;
 
-    if( ! async_data->srcFormat.empty() ){
-        if (debug) printf( "srcFormat: %s\n", async_data->srcFormat.c_str() );
-        image.magick( async_data->srcFormat.c_str() );
+    if( ! context->srcFormat.empty() ){
+        if (debug) printf( "srcFormat: %s\n", context->srcFormat.c_str() );
+        image.magick( context->srcFormat.c_str() );
     }
 
     try {
         image.read( srcBlob );
     }
     catch (Magick::Warning& warning) {
-        if (!ignoreWarnings) {
-            async_data->error = warning.what();
+        if (!context->ignoreWarnings) {
+            context->error = warning.what();
             return;
         } else if (debug) {
             printf("warning: %s\n", warning.what());
         }
     }
     catch (std::exception& err) {
-        async_data->error = err.what();
+        context->error = err.what();
         return;
     }
     catch (...) {
-        async_data->error = std::string("unhandled error");
+        context->error = std::string("unhandled error");
         return;
     }
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
-    unsigned int width = async_data->width;
+    unsigned int width = context->width;
     if (debug) printf( "width: %d\n", width );
 
-    unsigned int height = async_data->height;
+    unsigned int height = context->height;
     if (debug) printf( "height: %d\n", height );
 
-    if ( async_data->strip ) {
+    if ( context->strip ) {
         if (debug) printf( "strip: true\n" );
         image.strip();
     }
 
-    const char* resizeStyle = async_data->resizeStyle.c_str();
+    const char* resizeStyle = context->resizeStyle.c_str();
     if (debug) printf( "resizeStyle: %s\n", resizeStyle );
 
-    if( ! async_data->format.empty() ){
-        if (debug) printf( "format: %s\n", async_data->format.c_str() );
-        image.magick( async_data->format.c_str() );
+    if( ! context->format.empty() ){
+        if (debug) printf( "format: %s\n", context->format.c_str() );
+        image.magick( context->format.c_str() );
     }
 
-    if( ! async_data->filter.empty() ){
-        const char *filter = async_data->filter.c_str();
+    if( ! context->filter.empty() ){
+        const char *filter = context->filter.c_str();
 
         ssize_t option_info = MagickCore::ParseCommandOption(MagickCore::MagickFilterOptions, Magick::MagickFalse, filter);
         if (option_info != -1) {
@@ -172,13 +170,13 @@ void DoConvertAsync(uv_work_t* req) {
             image.filterType( (Magick::FilterTypes)option_info );
         }
         else {
-            async_data->error = std::string("filter not supported");
+            context->error = std::string("filter not supported");
             return;
         }
     }
 
-    if( ! async_data->blur.empty() ) {
-        double blur = atof (async_data->blur.c_str());
+    if( ! context->blur.empty() ) {
+        double blur = atof (context->blur.c_str());
         if (debug) printf( "blur: %.1f\n", blur );
         image.image()->blur = blur;
     }
@@ -224,11 +222,11 @@ void DoConvertAsync(uv_work_t* req) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                async_data->error = message;
+                context->error = message;
                 return;
             }
             catch (...) {
-                async_data->error = std::string("unhandled error");
+                context->error = std::string("unhandled error");
                 return;
             }
 
@@ -238,7 +236,7 @@ void DoConvertAsync(uv_work_t* req) {
 
             Magick::Color transparent( "transparent" );
             // if ( strcmp( format, "PNG" ) == 0 ) {
-            if ( async_data->format == "PNG" ) {
+            if ( context->format == "PNG" ) {
                 // make background transparent for PNG
                 // JPEG background becomes black if set transparent here
                 transparent.alpha( 1. );
@@ -262,11 +260,11 @@ void DoConvertAsync(uv_work_t* req) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                async_data->error = message;
+                context->error = message;
                 return;
             }
             catch (...) {
-                async_data->error = std::string("unhandled error");
+                context->error = std::string("unhandled error");
                 return;
             }
         }
@@ -282,74 +280,70 @@ void DoConvertAsync(uv_work_t* req) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                async_data->error = message;
+                context->error = message;
                 return;
             }
             catch (...) {
-                async_data->error = std::string("unhandled error");
+                context->error = std::string("unhandled error");
                 return;
             }
         }
         else {
-            async_data->error = std::string("resizeStyle not supported");
+            context->error = std::string("resizeStyle not supported");
             return;
         }
         if (debug) printf( "resized to: %d, %d\n", (int)image.columns(), (int)image.rows() );
     }
 
-    unsigned int quality = async_data->quality;
-    if ( quality ) {
-        if (debug) printf( "quality: %d\n", quality );
-        image.quality( quality );
+    if ( context->quality ) {
+        if (debug) printf( "quality: %d\n", context->quality );
+        image.quality( context->quality );
     }
 
-    int rotate = async_data->rotate;
-    if ( rotate ) {
-        if (debug) printf( "rotate: %d\n", rotate );
-        image.rotate(rotate);
+    if ( context->rotate ) {
+        if (debug) printf( "rotate: %d\n", context->rotate );
+        image.rotate( context->rotate );
     }
 
-    if ( async_data->flip ) {
+    if ( context->flip ) {
         if ( debug ) printf( "flip\n" );
         image.flip();
     }
 
-    int density = async_data->density;
-    if (density) {
-        image.density(Magick::Geometry(density, density));
+    if (context->density) {
+        image.density(Magick::Geometry(context->density, context->density));
     }
 
     Magick::Blob dstBlob;
     image.write( &dstBlob );
 
-    async_data->dstBlob = dstBlob;
+    context->dstBlob = dstBlob;
 }
 
-void ConvertAsyncAfter(uv_work_t* req) {
+void ConvertAfter(uv_work_t* req) {
     NanScope();
 
-    convert_im_async* async_data = static_cast<convert_im_async*>(req->data);
+    convert_im_ctx* context = static_cast<convert_im_ctx*>(req->data);
     delete req;
 
     Handle<Value> argv[2];
 
-    if (!async_data->error.empty()) {
-        argv[0] = Exception::Error(NanNew<String>(async_data->error.c_str()));
+    if (!context->error.empty()) {
+        argv[0] = Exception::Error(NanNew<String>(context->error.c_str()));
         argv[1] = NanUndefined();
     }
     else {
         argv[0] = NanUndefined();
-        const Handle<Object> retBuffer = NanNewBufferHandle(async_data->dstBlob.length());
-        memcpy( Buffer::Data(retBuffer), async_data->dstBlob.data(), async_data->dstBlob.length() );
+        const Handle<Object> retBuffer = NanNewBufferHandle(context->dstBlob.length());
+        memcpy( Buffer::Data(retBuffer), context->dstBlob.data(), context->dstBlob.length() );
         argv[1] = retBuffer;
     }
 
     TryCatch try_catch; // don't quite see the necessity of this
 
-    async_data->callback->Call(2, argv);
+    context->callback->Call(2, argv);
 
-    delete async_data;
-    // delete req;
+    delete context;
 
     if (try_catch.HasCaught())
         FatalException(try_catch);
@@ -371,17 +365,19 @@ void ConvertAsyncAfter(uv_work_t* req) {
 //                  debug:       optional. 1 or 0
 //              }
 //   args[ 1 ]: callback. optional, if present runs async and returns result with callback(error, buffer)
-NAN_METHOD(ConvertAsync) {
+NAN_METHOD(Convert) {
     NanScope();
 
-    bool isSync = false;
+    bool isSync = (args.Length() == 1);
 
-    if ( args.Length() != 2 ) {
-        isSync = true;
+    if ( args.Length() < 1 ) {
+        return NanThrowError("convert() requires 1 (option) argument!");
     }
+
     if ( ! args[ 0 ]->IsObject() ) {
-        return NanThrowError("convertAsync()'s 1st argument should be an object");
+        return NanThrowError("convert()'s 1st argument should be an object");
     }
+
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
     Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
@@ -389,115 +385,84 @@ NAN_METHOD(ConvertAsync) {
         return NanThrowError("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
-
-    unsigned int maxMemory = obj->Get( NanNew<String>("maxMemory") )->Uint32Value();
-
-    unsigned int width = obj->Get( NanNew<String>("width") )->Uint32Value();
-
-    unsigned int height = obj->Get( NanNew<String>("height") )->Uint32Value();
+    convert_im_ctx* context = new convert_im_ctx();
+    context->srcData = Buffer::Data(srcData);
+    context->length = Buffer::Length(srcData);
+    context->debug = obj->Get( NanNew<String>("debug") )->Uint32Value();
+    context->ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
+    context->maxMemory = obj->Get( NanNew<String>("maxMemory") )->Uint32Value();
+    context->width = obj->Get( NanNew<String>("width") )->Uint32Value();
+    context->height = obj->Get( NanNew<String>("height") )->Uint32Value();
+    context->quality = obj->Get( NanNew<String>("quality") )->Uint32Value();
+    context->rotate = obj->Get( NanNew<String>("rotate") )->Int32Value();
+    context->flip = obj->Get( NanNew<String>("flip") )->Uint32Value();
+    context->density = obj->Get( NanNew<String>("density") )->Int32Value();
 
     Local<Value> stripValue = obj->Get( NanNew<String>("strip") );
-    bool strip = ! stripValue->IsUndefined() && stripValue->BooleanValue();
+    context->strip = ! stripValue->IsUndefined() && stripValue->BooleanValue();
 
-    Local<Value> resizeStyleValue = obj->Get( NanNew<String>("resizeStyle") );
-    const char* resizeStyle = "aspectfill";
-    if ( ! resizeStyleValue->IsUndefined() ) {
-        size_t count;
-        resizeStyle = NanCString(resizeStyleValue, &count);
-    }
-
-    Local<Value> formatValue = obj->Get( NanNew<String>("format") );
-    const char* format = "";
-    if ( ! formatValue->IsUndefined() ) {
-        size_t count;
-        format = NanCString(formatValue, &count);
-    }
-
-    Local<Value> srcFormatValue = obj->Get( String::NewSymbol("srcFormat") );
-    const char *srcFormat = "";
-    if ( ! srcFormatValue->IsUndefined() ) {
-        size_t count;
-        srcFormat = NanCString(srcFormatValue, &count);
-    }
-
-    Local<Value> filterValue = obj->Get( NanNew<String>("filter") );
-    const char *filter = "";
-    if ( ! filterValue->IsUndefined() ) {
-        size_t count;
-        filter = NanCString(filterValue, &count);
-    }
-
+    // manage blur as string for detect is empty
     Local<Value> blurValue = obj->Get( NanNew<String>("blur") );
-    std::string blur = "";
+    context->blur = "";
     if ( ! blurValue->IsUndefined() ) {
         double blurD = blurValue->NumberValue();
         std::ostringstream strs;
         strs << blurD;
-        blur = strs.str();
+        context->blur = strs.str();
     }
 
-    unsigned int quality = obj->Get( NanNew<String>("quality") )->Uint32Value();
+    // shared unused counter for NanCString
+    size_t count;
 
-    int rotate = obj->Get( NanNew<String>("rotate") )->Int32Value();
-    int flip = obj->Get( String::NewSymbol("flip") )->Uint32Value();
-    int density = obj->Get( NanNew<String>("density") )->Int32Value();
+    Local<Value> resizeStyleValue = obj->Get( NanNew<String>("resizeStyle") );
+    context->resizeStyle = !resizeStyleValue->IsUndefined() ?
+        NanCString(resizeStyleValue, &count) : "aspectfill";
 
-    convert_im_async* async_data = new convert_im_async();
-    async_data->srcData = Buffer::Data(srcData);
-    async_data->length = Buffer::Length(srcData);
-    async_data->debug = debug;
-    async_data->ignoreWarnings = ignoreWarnings;
-    if(!isSync) {
-        async_data->callback = new NanCallback(Local<Function>::Cast(args[1]));
-    }
+    Local<Value> formatValue = obj->Get( NanNew<String>("format") );
+    context->format = !formatValue->IsUndefined() ?
+         NanCString(formatValue, &count) : "";
 
-    async_data->maxMemory = maxMemory;
-    async_data->width = width;
-    async_data->height = height;
-    async_data->strip = strip;
-    async_data->resizeStyle = std::string(resizeStyle);
-    async_data->format = std::string(format);
-    async_data->filter = std::string(filter);
-    async_data->blur = std::string(blur);
-    async_data->quality = quality;
-    async_data->rotate = rotate;
-    async_data->flip = flip;
-    async_data->density = density;
-    async_data->srcFormat = std::string(srcFormat);
+    Local<Value> srcFormatValue = obj->Get( NanNew<String>("srcFormat") );
+    context->srcFormat = !srcFormatValue->IsUndefined() ?
+        NanCString(srcFormatValue, &count) : "";
+
+    Local<Value> filterValue = obj->Get( NanNew<String>("filter") );
+    context->filter = !filterValue->IsUndefined() ?
+        NanCString(filterValue, &count) : "";
 
     uv_work_t* req = new uv_work_t();
-    req->data = async_data;
+    req->data = context;
     if(!isSync) {
-        uv_queue_work(uv_default_loop(), req, DoConvertAsync, (uv_after_work_cb)ConvertAsyncAfter);
+        context->callback = new NanCallback(Local<Function>::Cast(args[1]));
+
+        uv_queue_work(uv_default_loop(), req, DoConvert, (uv_after_work_cb)ConvertAfter);
 
         NanReturnUndefined();
     } else {
-        DoConvertAsync(req);
-        convert_im_async* async_data = static_cast<convert_im_async*>(req->data);
+        DoConvert(req);
+        convert_im_ctx* context = static_cast<convert_im_ctx*>(req->data);
         delete req;
-        if (!async_data->error.empty()) {
-            const char *err_str = async_data->error.c_str();
-            delete async_data;
+        if (!context->error.empty()) {
+            const char *err_str = context->error.c_str();
+            delete context;
             return NanThrowError(NanNew<String>(err_str));
         }
         else {
-            const Handle<Object> retBuffer = NanNewBufferHandle(async_data->dstBlob.length());
-            memcpy( Buffer::Data(retBuffer), async_data->dstBlob.data(), async_data->dstBlob.length() );
-            delete async_data;
+            const Handle<Object> retBuffer = NanNewBufferHandle(context->dstBlob.length());
+            memcpy( Buffer::Data(retBuffer), context->dstBlob.data(), context->dstBlob.length() );
+            delete context;
             NanReturnValue(retBuffer);
         }
     }
 }
 
-void DoIdentifyAsync(uv_work_t* req) {
+void DoIdentify(uv_work_t* req) {
 
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
-    identify_im_async* async_data = static_cast<identify_im_async*>(req->data);
+    identify_im_ctx* context = static_cast<identify_im_ctx*>(req->data);
 
-    Magick::Blob srcBlob( async_data->srcData, async_data->length );
+    Magick::Blob srcBlob( context->srcData, context->length );
 
     Magick::Image image;
     try {
@@ -507,70 +472,70 @@ void DoIdentifyAsync(uv_work_t* req) {
         std::string what (err.what());
         std::string message = std::string("image.read failed with error: ") + what;
         std::size_t found   = what.find( "warn" );
-        if (async_data->ignoreWarnings && (found != std::string::npos)) {
-            if (async_data->debug) printf("warning: %s\n", message.c_str());
+        if (context->ignoreWarnings && (found != std::string::npos)) {
+            if (context->debug) printf("warning: %s\n", message.c_str());
         }
         else {
-            async_data->error = message;
+            context->error = message;
         }
     }
     catch (...) {
-        async_data->error = std::string("unhandled error");
+        context->error = std::string("unhandled error");
     }
-    if(!async_data->error.empty()) {
+    if(!context->error.empty()) {
         return;
     }
 
-    if (async_data->debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
+    if (context->debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
-    async_data->image = image;
+    context->image = image;
 }
 
-void buildIdentifyResult(uv_work_t *req, Handle<Value> *argv) {
-    identify_im_async* async_data = static_cast<identify_im_async*>(req->data);
+void BuildIdentifyResult(uv_work_t *req, Handle<Value> *argv) {
+    identify_im_ctx* context = static_cast<identify_im_ctx*>(req->data);
 
-    if (!async_data->error.empty()) {
-        argv[0] = Exception::Error(NanNew<String>(async_data->error.c_str()));
+    if (!context->error.empty()) {
+        argv[0] = Exception::Error(NanNew<String>(context->error.c_str()));
         argv[1] = NanUndefined();
     }
     else {
         argv[0] = NanUndefined();
         Handle<Object> out = NanNew<Object>();
 
-        out->Set(NanNew<String>("width"), NanNew<Integer>(async_data->image.columns()));
-        out->Set(NanNew<String>("height"), NanNew<Integer>(async_data->image.rows()));
-        out->Set(NanNew<String>("depth"), NanNew<Integer>(async_data->image.depth()));
-        out->Set(NanNew<String>("format"), NanNew<String>(async_data->image.magick().c_str()));
+        out->Set(NanNew<String>("width"), NanNew<Integer>(context->image.columns()));
+        out->Set(NanNew<String>("height"), NanNew<Integer>(context->image.rows()));
+        out->Set(NanNew<String>("depth"), NanNew<Integer>(context->image.depth()));
+        out->Set(NanNew<String>("format"), NanNew<String>(context->image.magick().c_str()));
 
         Handle<Object> out_density = NanNew<Object>();
-        Magick::Geometry density = async_data->image.density();
+        Magick::Geometry density = context->image.density();
         out_density->Set(NanNew<String>("width"), NanNew<Integer>(density.width()));
         out_density->Set(NanNew<String>("height"), NanNew<Integer>(density.height()));
         out->Set(NanNew<String>("density"), out_density);
 
         Handle<Object> out_exif = NanNew<Object>();
-        out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(async_data->image.attribute("EXIF:Orientation").c_str())));
+        out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(context->image.attribute("EXIF:Orientation").c_str())));
         out->Set(NanNew<String>("exif"), out_exif);
 
         argv[1] = out;
     }
 }
 
-void IdentifyAsyncAfter(uv_work_t* req) {
+void IdentifyAfter(uv_work_t* req) {
     NanScope();
 
     Handle<Value> argv[2];
-    buildIdentifyResult(req,argv);
+    BuildIdentifyResult(req,argv);
 
-    identify_im_async* async_data = static_cast<identify_im_async*>(req->data);
+    identify_im_ctx* context = static_cast<identify_im_ctx*>(req->data);
 
     TryCatch try_catch; // don't quite see the necessity of this
 
-    async_data->callback->Call(2, argv);
+    context->callback->Call(2, argv);
 
     if (try_catch.HasCaught())
         FatalException(try_catch);
-    delete async_data;
+    delete context;
     delete req;
 }
 
@@ -581,14 +546,10 @@ void IdentifyAsyncAfter(uv_work_t* req) {
 //                  debug:          optional. 1 or 0
 //              }
 //   args[ 1 ]: callback. optional, if present runs async and returns result with callback(error, info)
-NAN_METHOD(IdentifyAsync) {
+NAN_METHOD(Identify) {
     NanScope();
 
-    bool isSync = false;
-
-    if ( args.Length() < 2 ) {
-        isSync = true;
-    }
+    bool isSync = args.Length() == 1;
 
     if ( args.Length() < 1 ) {
         return NanThrowError("identify() requires 1 (option) argument!");
@@ -600,32 +561,29 @@ NAN_METHOD(IdentifyAsync) {
         return NanThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
-    if (debug) printf( "debug: on\n" );
-    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
+    identify_im_ctx* context = new identify_im_ctx();
+    context->srcData = Buffer::Data(srcData);
+    context->length = Buffer::Length(srcData);
 
-    identify_im_async* async_data = new identify_im_async();
-    async_data->srcData = Buffer::Data(srcData);
-    async_data->length = Buffer::Length(srcData);
-    async_data->debug = debug;
-    async_data->ignoreWarnings = ignoreWarnings;
-    if(!isSync){
-        async_data->callback = new NanCallback(Local<Function>::Cast(args[1]));
-    }
+    context->debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
+    context->ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
+
+    if (context->debug) printf( "debug: on\n" );
+    if (context->debug) printf( "ignoreWarnings: %d\n", context->ignoreWarnings );
 
     uv_work_t* req = new uv_work_t();
-    req->data = async_data;
+    req->data = context;
     if(!isSync) {
-        uv_queue_work(uv_default_loop(), req, DoIdentifyAsync, (uv_after_work_cb)IdentifyAsyncAfter);
+        context->callback = new NanCallback(Local<Function>::Cast(args[1]));
+
+        uv_queue_work(uv_default_loop(), req, DoIdentify, (uv_after_work_cb)IdentifyAfter);
 
         NanReturnUndefined();
     } else {
-        DoIdentifyAsync(req);
+        DoIdentify(req);
         Handle<Value> argv[2];
-        buildIdentifyResult(req,argv);
-        identify_im_async* async_data = static_cast<identify_im_async*>(req->data);
-        delete async_data;
+        BuildIdentifyResult(req,argv);
+        delete static_cast<identify_im_ctx*>(req->data);
         delete req;
         if(argv[0]->IsUndefined()){
             NanReturnValue(argv[1]);
@@ -952,16 +910,16 @@ NAN_METHOD(GetQuantumDepth) {
 
 void init(Handle<Object> exports) {
 #if NODE_MODULE_VERSION >= 14
-    NODE_SET_METHOD(exports, "convert", ConvertAsync);
-    NODE_SET_METHOD(exports, "identify", IdentifyAsync);
+    NODE_SET_METHOD(exports, "convert", Convert);
+    NODE_SET_METHOD(exports, "identify", Identify);
     NODE_SET_METHOD(exports, "quantizeColors", QuantizeColors);
     NODE_SET_METHOD(exports, "composite", Composite);
     NODE_SET_METHOD(exports, "version", Version);
     NODE_SET_METHOD(exports, "getConstPixels", GetConstPixels);
     NODE_SET_METHOD(exports, "quantumDepth", GetQuantumDepth); // QuantumDepth is already defined
 #else
-    exports->Set(NanNew<String>("convert"), FunctionTemplate::New(ConvertAsync)->GetFunction());
-    exports->Set(NanNew<String>("identify"), FunctionTemplate::New(IdentifyAsync)->GetFunction());
+    exports->Set(NanNew<String>("convert"), FunctionTemplate::New(Convert)->GetFunction());
+    exports->Set(NanNew<String>("identify"), FunctionTemplate::New(Identify)->GetFunction());
     exports->Set(NanNew<String>("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
     exports->Set(NanNew<String>("composite"), FunctionTemplate::New(Composite)->GetFunction());
     exports->Set(NanNew<String>("version"), FunctionTemplate::New(Version)->GetFunction());
