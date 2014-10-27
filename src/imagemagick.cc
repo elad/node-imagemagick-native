@@ -228,7 +228,7 @@ NAN_METHOD(Convert) {
             if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
             Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
 
-            Magick::Color transparent( "white" );
+            Magick::Color transparent( "transparent" );
             if ( format && strcmp( format, "PNG" ) == 0 ) {
                 // make background transparent for PNG
                 // JPEG background becomes black if set transparent here
