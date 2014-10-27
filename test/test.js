@@ -222,7 +222,7 @@ test( 'convert broken png', function (t) {
         });
     } catch (e) {
         t.similar( e.message,
-                   new RegExp("CRC error|image\\.read failed with error: Magick:") );
+                   new RegExp("CRC error|image\\.read failed with error: Magick:|corrupt image") );
     }
     t.end();
 });
