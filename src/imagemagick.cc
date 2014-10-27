@@ -583,8 +583,10 @@ void ConvertAsyncAfter(uv_work_t* req) {
 NAN_METHOD(ConvertAsync) {
     NanScope();
 
+    bool isSync = false;
+
     if ( args.Length() != 2 ) {
-        return NanThrowError("convertAsync() requires 2 (option,callback) arguments!");
+        isSync = true;
     }
     if ( ! args[ 0 ]->IsObject() ) {
         return NanThrowError("convertAsync()'s 1st argument should be an object");
@@ -647,7 +649,9 @@ NAN_METHOD(ConvertAsync) {
     async_data->length = Buffer::Length(srcData);
     async_data->debug = debug;
     async_data->ignoreWarnings = ignoreWarnings;
-    async_data->callback = new NanCallback(Local<Function>::Cast(args[1]));
+    if(!isSync) {
+        async_data->callback = new NanCallback(Local<Function>::Cast(args[1]));
+    }
 
     async_data->maxMemory = maxMemory;
     async_data->width = width;
@@ -662,9 +666,24 @@ NAN_METHOD(ConvertAsync) {
 
     uv_work_t* req = new uv_work_t();
     req->data = async_data;
-    uv_queue_work(uv_default_loop(), req, DoConvertAsync, (uv_after_work_cb)ConvertAsyncAfter);
+    if(!isSync) {
+        uv_queue_work(uv_default_loop(), req, DoConvertAsync, (uv_after_work_cb)ConvertAsyncAfter);
 
-    NanReturnUndefined();
+        NanReturnUndefined();
+    } else {
+        DoConvertAsync(req);
+        convert_im_async* async_data = static_cast<convert_im_async*>(req->data);
+        delete req;
+        if (!async_data->error.empty()) {
+            NanThrowError(NanNew<String>(async_data->error.c_str()));
+        }
+        else {
+            const Handle<Object> retBuffer = NanNewBufferHandle(async_data->dstBlob.length());
+            memcpy( Buffer::Data(retBuffer), async_data->dstBlob.data(), async_data->dstBlob.length() );
+            delete async_data;
+            NanReturnValue(retBuffer);
+        }
+    }
 }
 
 // input
