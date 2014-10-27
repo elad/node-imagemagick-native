@@ -84,6 +84,10 @@ struct convert_im_async : im_async_base {
     std::string blur;
     unsigned int quality;
     int rotate;
+    int density;
+    int flip;
+
+    std::string srcFormat;
 
     Magick::Blob dstBlob;
 
@@ -375,20 +379,26 @@ void DoConvertAsync(uv_work_t* req) {
     Magick::Blob srcBlob( async_data->srcData, async_data->length );
 
     Magick::Image image;
+
+    if( ! async_data->srcFormat.empty() ){
+        if (debug) printf( "srcFormat: %s\n", async_data->srcFormat.c_str() );
+        image.magick( async_data->srcFormat.c_str() );
+    }
+
     try {
         image.read( srcBlob );
     }
-    catch (std::exception& err) {
-        std::string what (err.what());
-        std::string message = std::string("image.read failed with error: ") + what;
-        std::size_t found   = what.find( "warn" );
-        if (ignoreWarnings && (found != std::string::npos)) {
-            if (debug) printf("warning: %s\n", message.c_str());
-        }
-        else {
-            async_data->error = message;
+    catch (Magick::Warning& warning) {
+        if (!ignoreWarnings) {
+            async_data->error = warning.what();
             return;
+        } else if (debug) {
+            printf("warning: %s\n", warning.what());
         }
+    }
+    catch (std::exception& err) {
+        async_data->error = err.what();
+        return;
     }
     catch (...) {
         async_data->error = std::string("unhandled error");
@@ -489,7 +499,7 @@ void DoConvertAsync(uv_work_t* req) {
             if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
             Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
 
-            Magick::Color transparent( "white" );
+            Magick::Color transparent( "transparent" );
             // if ( strcmp( format, "PNG" ) == 0 ) {
             if ( async_data->format == "PNG" ) {
                 // make background transparent for PNG
@@ -560,6 +570,16 @@ void DoConvertAsync(uv_work_t* req) {
     if ( rotate ) {
         if (debug) printf( "rotate: %d\n", rotate );
         image.rotate(rotate);
+    }
+
+    if ( async_data->flip ) {
+        if ( debug ) printf( "flip\n" );
+        image.flip();
+    }
+
+    int density = async_data->density;
+    if (density) {
+        image.density(Magick::Geometry(density, density));
     }
 
     Magick::Blob dstBlob;
@@ -642,6 +662,13 @@ NAN_METHOD(ConvertAsync) {
         format = NanCString(formatValue, &count);
     }
 
+    Local<Value> srcFormatValue = obj->Get( String::NewSymbol("srcFormat") );
+    const char *srcFormat = "";
+    if ( ! srcFormatValue->IsUndefined() ) {
+        size_t count;
+        srcFormat = NanCString(srcFormatValue, &count);
+    }
+
     Local<Value> filterValue = obj->Get( NanNew<String>("filter") );
     const char *filter = "";
     if ( ! filterValue->IsUndefined() ) {
@@ -661,6 +688,8 @@ NAN_METHOD(ConvertAsync) {
     unsigned int quality = obj->Get( NanNew<String>("quality") )->Uint32Value();
 
     int rotate = obj->Get( NanNew<String>("rotate") )->Int32Value();
+    int flip = obj->Get( String::NewSymbol("flip") )->Uint32Value();
+    int density = obj->Get( NanNew<String>("density") )->Int32Value();
 
     convert_im_async* async_data = new convert_im_async();
     async_data->srcData = Buffer::Data(srcData);
@@ -681,6 +710,9 @@ NAN_METHOD(ConvertAsync) {
     async_data->blur = std::string(blur);
     async_data->quality = quality;
     async_data->rotate = rotate;
+    async_data->flip = flip;
+    async_data->density = density;
+    async_data->srcFormat = std::string(srcFormat);
 
     uv_work_t* req = new uv_work_t();
     req->data = async_data;
@@ -693,7 +725,7 @@ NAN_METHOD(ConvertAsync) {
         convert_im_async* async_data = static_cast<convert_im_async*>(req->data);
         delete req;
         if (!async_data->error.empty()) {
-            NanThrowError(NanNew<String>(async_data->error.c_str()));
+            return NanThrowError(NanNew<String>(async_data->error.c_str()));
         }
         else {
             const Handle<Object> retBuffer = NanNewBufferHandle(async_data->dstBlob.length());
@@ -827,6 +859,12 @@ void IdentifyAsyncAfter(uv_work_t* req) {
         out->Set(NanNew<String>("height"), NanNew<Integer>(async_data->image.rows()));
         out->Set(NanNew<String>("depth"), NanNew<Integer>(async_data->image.depth()));
         out->Set(NanNew<String>("format"), NanNew<String>(async_data->image.magick().c_str()));
+
+        Handle<Object> out_density = NanNew<Object>();
+        Magick::Geometry density = async_data->image.density();
+        out_density->Set(NanNew<String>("width"), NanNew<Integer>(density.width()));
+        out_density->Set(NanNew<String>("height"), NanNew<Integer>(density.height()));
+        out->Set(NanNew<String>("density"), out_density);
 
         Handle<Object> out_exif = NanNew<Object>();
         out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(async_data->image.attribute("EXIF:Orientation").c_str())));
