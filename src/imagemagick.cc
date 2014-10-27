@@ -94,269 +94,6 @@ struct convert_im_async : im_async_base {
     convert_im_async() {}
 };
 
-// input
-//   args[ 0 ]: options. required, object with following key,values
-//              {
-//                  srcData:     required. Buffer with binary image data
-//                  quality:     optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
-//                  width:       optional. px.
-//                  height:      optional. px.
-//                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
-//                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
-//                  filter:      optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
-//                  blur:        optional. ex: 0.8
-//                  strip:       optional. default: false. strips comments out from image.
-//                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
-//                  debug:       optional. 1 or 0
-//              }
-NAN_METHOD(Convert) {
-    NanScope();
-    MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
-    LocalResourceLimiter limiter;
-
-    if ( args.Length() != 1 ) {
-        return NanThrowError("convert() requires 1 (option) argument!");
-    }
-    if ( ! args[ 0 ]->IsObject() ) {
-        return NanThrowError("convert()'s 1st argument should be an object");
-    }
-    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
-
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
-    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
-        return NanThrowError("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
-    }
-
-    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
-    if (debug) printf( "debug: on\n" );
-    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
-
-    unsigned int maxMemory = obj->Get( NanNew<String>("maxMemory") )->Uint32Value();
-    if (maxMemory > 0) {
-        limiter.LimitMemory(maxMemory);
-        limiter.LimitDisk(maxMemory); // avoid using unlimited disk as cache
-        if (debug) printf( "maxMemory set to: %d\n", maxMemory );
-    }
-
-    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
-
-    Magick::Image image;
-
-    Local<Value> srcFormatValue = obj->Get( String::NewSymbol("srcFormat") );
-    String::AsciiValue srcFormat( srcFormatValue->ToString() );
-    if ( ! srcFormatValue->IsUndefined() ) {
-        if (debug) printf( "srcFormat: %s\n", *srcFormat );
-        image.magick( *srcFormat );
-    }
-
-    try {
-        image.read( srcBlob );
-    }
-    catch (Magick::Warning& warning) {
-        if (!ignoreWarnings) {
-            return NanThrowError(warning.what());
-        } else if (debug) {
-            printf("warning: %s\n", warning.what());
-        }
-    }
-    catch (std::exception& err) {
-        return NanThrowError(err.what());
-    }
-    catch (...) {
-        return NanThrowError("unhandled error");
-    }
-
-    if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
-
-    unsigned int width = obj->Get( NanNew<String>("width") )->Uint32Value();
-    if (debug) printf( "width: %d\n", width );
-
-    unsigned int height = obj->Get( NanNew<String>("height") )->Uint32Value();
-    if (debug) printf( "height: %d\n", height );
-
-    Local<Value> stripValue = obj->Get( NanNew<String>("strip") );
-    if ( ! stripValue->IsUndefined() && stripValue->BooleanValue() ) {
-        if (debug) printf( "strip: true\n" );
-        image.strip();
-    }
-
-    Local<Value> resizeStyleValue = obj->Get( NanNew<String>("resizeStyle") );
-    const char* resizeStyle = "aspectfill";
-    if ( ! resizeStyleValue->IsUndefined() ) {
-        size_t count;
-        resizeStyle = NanCString(resizeStyleValue, &count);
-    }
-    if (debug) printf( "resizeStyle: %s\n", resizeStyle );
-
-    Local<Value> formatValue = obj->Get( NanNew<String>("format") );
-    const char* format;
-    if ( ! formatValue->IsUndefined() ) {
-        size_t count;
-        format = NanCString(formatValue, &count);
-        if (debug) printf( "format: %s\n", format );
-        image.magick( format );
-    }
-
-    Local<Value> filterValue = obj->Get( NanNew<String>("filter") );
-    if ( ! filterValue->IsUndefined() ) {
-        size_t count;
-        const char *filter = NanCString(filterValue, &count);
-
-        ssize_t option_info = MagickCore::ParseCommandOption(MagickCore::MagickFilterOptions, Magick::MagickFalse, filter);
-        if (option_info != -1) {
-            if (debug) printf( "filter: %s\n", filter );
-            image.filterType( (Magick::FilterTypes)option_info );
-        }
-        else {
-            return NanThrowError("filter not supported");
-        }
-    }
-
-    Local<Value> blurValue = obj->Get( NanNew<String>("blur") );
-    if ( ! blurValue->IsUndefined() ) {
-        double blur = blurValue->NumberValue();
-        if (debug) printf( "blur: %.1f\n", blur );
-        image.image()->blur = blur;
-    }
-
-    if ( width || height ) {
-        if ( ! width  ) { width  = image.columns(); }
-        if ( ! height ) { height = image.rows();    }
-
-        // do resize
-        if ( strcmp( resizeStyle, "aspectfill" ) == 0 ) {
-            // ^ : Fill Area Flag ('^' flag)
-            // is not implemented in Magick++
-            // and gravity: center, extent doesnt look like working as exptected
-            // so we do it ourselves
-
-            // keep aspect ratio, get the exact provided size, crop top/bottom or left/right if necessary
-            double aspectratioExpected = (double)height / (double)width;
-            double aspectratioOriginal = (double)image.rows() / (double)image.columns();
-            unsigned int xoffset = 0;
-            unsigned int yoffset = 0;
-            unsigned int resizewidth;
-            unsigned int resizeheight;
-            if ( aspectratioExpected > aspectratioOriginal ) {
-                // expected is taller
-                resizewidth  = (unsigned int)( (double)height / (double)image.rows() * (double)image.columns() + 1. );
-                resizeheight = height;
-                xoffset      = (unsigned int)( (resizewidth - width) / 2. );
-                yoffset      = 0;
-            }
-            else {
-                // expected is wider
-                resizewidth  = width;
-                resizeheight = (unsigned int)( (double)width / (double)image.columns() * (double)image.rows() + 1. );
-                xoffset      = 0;
-                yoffset      = (unsigned int)( (resizeheight - height) / 2. );
-            }
-
-            if (debug) printf( "resize to: %d, %d\n", resizewidth, resizeheight );
-            Magick::Geometry resizeGeometry( resizewidth, resizeheight, 0, 0, 0, 0 );
-            try {
-                image.zoom( resizeGeometry );
-            }
-            catch (std::exception& err) {
-                std::string message = "image.resize failed with error: ";
-                message            += err.what();
-                return NanThrowError(message.c_str());
-            }
-            catch (...) {
-                return NanThrowError("unhandled error");
-            }
-
-            // limit canvas size to cropGeometry
-            if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
-            Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
-
-            Magick::Color transparent( "transparent" );
-            if ( format && strcmp( format, "PNG" ) == 0 ) {
-                // make background transparent for PNG
-                // JPEG background becomes black if set transparent here
-                transparent.alpha( 1. );
-            }
-
-            #if MagickLibVersion > 0x654
-                image.extent( cropGeometry, transparent );
-            #else
-                image.extent( cropGeometry );
-            #endif
-        }
-        else if ( strcmp ( resizeStyle, "aspectfit" ) == 0 ) {
-            // keep aspect ratio, get the maximum image which fits inside specified size
-            char geometryString[ 32 ];
-            sprintf( geometryString, "%dx%d", width, height );
-            if (debug) printf( "resize to: %s\n", geometryString );
-
-            try {
-                image.zoom( geometryString );
-            }
-            catch (std::exception& err) {
-                std::string message = "image.resize failed with error: ";
-                message            += err.what();
-                return NanThrowError(message.c_str());
-            }
-            catch (...) {
-                return NanThrowError("unhandled error");
-            }
-        }
-        else if ( strcmp ( resizeStyle, "fill" ) == 0 ) {
-            // change aspect ratio and fill specified size
-            char geometryString[ 32 ];
-            sprintf( geometryString, "%dx%d!", width, height );
-            if (debug) printf( "resize to: %s\n", geometryString );
-
-            try {
-                image.zoom( geometryString );
-            }
-            catch (std::exception& err) {
-                std::string message = "image.resize failed with error: ";
-                message            += err.what();
-                return NanThrowError(message.c_str());
-            }
-            catch (...) {
-                return NanThrowError("unhandled error");
-            }
-        }
-        else {
-            return NanThrowError("resizeStyle not supported");
-        }
-        if (debug) printf( "resized to: %d, %d\n", (int)image.columns(), (int)image.rows() );
-    }
-
-    unsigned int quality = obj->Get( NanNew<String>("quality") )->Uint32Value();
-    if ( quality ) {
-        if (debug) printf( "quality: %d\n", quality );
-        image.quality( quality );
-    }
-
-    int rotate = obj->Get( NanNew<String>("rotate") )->Int32Value();
-    if ( rotate ) {
-        if (debug) printf( "rotate: %d\n", rotate );
-        image.rotate(rotate);
-    }
-
-    int flip = obj->Get( String::NewSymbol("flip") )->Uint32Value();
-    if ( flip ) {
-        if ( debug ) printf( "flip\n" );
-        image.flip();
-    }
-
-    int density = obj->Get( NanNew<String>("density") )->Int32Value();
-    if (density) {
-        image.density(Magick::Geometry(density, density));
-    }
-
-    Magick::Blob dstBlob;
-    image.write( &dstBlob );
-
-    const Handle<Object> retBuffer = NanNewBufferHandle(dstBlob.length());
-    memcpy( Buffer::Data(retBuffer), dstBlob.data(), dstBlob.length() );
-    NanReturnValue(retBuffer);
-}
-
 void DoConvertAsync(uv_work_t* req) {
 
     convert_im_async* async_data = static_cast<convert_im_async*>(req->data);
@@ -618,6 +355,22 @@ void ConvertAsyncAfter(uv_work_t* req) {
         FatalException(try_catch);
 }
 
+// input
+//   args[ 0 ]: options. required, object with following key,values
+//              {
+//                  srcData:     required. Buffer with binary image data
+//                  quality:     optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
+//                  width:       optional. px.
+//                  height:      optional. px.
+//                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
+//                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
+//                  filter:      optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
+//                  blur:        optional. ex: 0.8
+//                  strip:       optional. default: false. strips comments out from image.
+//                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
+//                  debug:       optional. 1 or 0
+//              }
+//   args[ 1 ]: callback. optional, if present runs async and returns result with callback(error, buffer)
 NAN_METHOD(ConvertAsync) {
     NanScope();
 
@@ -1232,8 +985,7 @@ NAN_METHOD(GetQuantumDepth) {
 
 void init(Handle<Object> exports) {
 #if NODE_MODULE_VERSION >= 14
-    NODE_SET_METHOD(exports, "convert", Convert);
-    NODE_SET_METHOD(exports, "convertAsync", ConvertAsync);
+    NODE_SET_METHOD(exports, "convert", ConvertAsync);
     NODE_SET_METHOD(exports, "identify", Identify);
     NODE_SET_METHOD(exports, "identifyAsync", IdentifyAsync);
     NODE_SET_METHOD(exports, "quantizeColors", QuantizeColors);
@@ -1242,8 +994,7 @@ void init(Handle<Object> exports) {
     NODE_SET_METHOD(exports, "getConstPixels", GetConstPixels);
     NODE_SET_METHOD(exports, "quantumDepth", GetQuantumDepth); // QuantumDepth is already defined
 #else
-    exports->Set(NanNew<String>("convert"), FunctionTemplate::New(Convert)->GetFunction());
-    exports->Set(NanNew<String>("convertAsync"), FunctionTemplate::New(ConvertAsync)->GetFunction());
+    exports->Set(NanNew<String>("convert"), FunctionTemplate::New(ConvertAsync)->GetFunction());
     exports->Set(NanNew<String>("identify"), FunctionTemplate::New(Identify)->GetFunction());
     exports->Set(NanNew<String>("identifyAsync"), FunctionTemplate::New(IdentifyAsync)->GetFunction());
     exports->Set(NanNew<String>("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());

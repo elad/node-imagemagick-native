@@ -16,7 +16,7 @@ function saveToFileIfDebug (buffer, file) {
 
 test( 'convert filter Lagrange', function (t) {
     t.plan(1);
-    imagemagick.convertAsync({
+    imagemagick.convert({
         srcData: require('fs').readFileSync( "test.png" ), // 58x66
         width: 100,
         height: 100,
