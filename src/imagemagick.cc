@@ -342,6 +342,8 @@ void ConvertAfter(uv_work_t* req) {
 
     context->callback->Call(2, argv);
 
+    delete context->callback;
+
     delete context;
 
     if (try_catch.HasCaught())
