@@ -534,10 +534,12 @@ void IdentifyAfter(uv_work_t* req) {
 
     context->callback->Call(2, argv);
 
-    if (try_catch.HasCaught())
-        FatalException(try_catch);
+    delete context->callback;
     delete context;
     delete req;
+
+    if (try_catch.HasCaught())
+        FatalException(try_catch);
 }
 
 // input
