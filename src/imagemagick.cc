@@ -8,6 +8,7 @@
 
 #include "imagemagick.h"
 #include <list>
+#include <sstream>
 #include <string.h>
 #include <exception>
 
@@ -51,114 +52,117 @@ private:
     bool diskLimited;
 };
 
-// input
-//   args[ 0 ]: options. required, object with following key,values
-//              {
-//                  srcData:     required. Buffer with binary image data
-//                  quality:     optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
-//                  width:       optional. px.
-//                  height:      optional. px.
-//                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
-//                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
-//                  filter:      optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
-//                  blur:        optional. ex: 0.8
-//                  strip:       optional. default: false. strips comments out from image.
-//                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
-//                  debug:       optional. 1 or 0
-//              }
-NAN_METHOD(Convert) {
-    NanScope();
+// Base context for calls shared on sync and async code paths
+struct im_ctx_base {
+    NanCallback * callback;
+    std::string error;
+
+    char* srcData;
+    size_t length;
+    int debug;
+    int ignoreWarnings;
+
+    virtual ~im_ctx_base() {}
+};
+// Extra context for identify
+struct identify_im_ctx : im_ctx_base {
+    Magick::Image image;
+
+    identify_im_ctx() {}
+};
+// Extra context for convert
+struct convert_im_ctx : im_ctx_base {
+    unsigned int maxMemory;
+
+    unsigned int width;
+    unsigned int height;
+    bool strip;
+    std::string resizeStyle;
+    std::string format;
+    std::string filter;
+    std::string blur;
+    unsigned int quality;
+    int rotate;
+    int density;
+    int flip;
+
+    std::string srcFormat;
+
+    Magick::Blob dstBlob;
+
+    convert_im_ctx() {}
+};
+
+void DoConvert(uv_work_t* req) {
+
+    convert_im_ctx* context = static_cast<convert_im_ctx*>(req->data);
+
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
     LocalResourceLimiter limiter;
 
-    if ( args.Length() != 1 ) {
-        return NanThrowError("convert() requires 1 (option) argument!");
-    }
-    if ( ! args[ 0 ]->IsObject() ) {
-        return NanThrowError("convert()'s 1st argument should be an object");
-    }
-    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+    int debug = context->debug;
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
-    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
-        return NanThrowError("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
-    }
-
-    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
-    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
+    if (debug) printf( "ignoreWarnings: %d\n", context->ignoreWarnings );
 
-    unsigned int maxMemory = obj->Get( NanNew<String>("maxMemory") )->Uint32Value();
-    if (maxMemory > 0) {
-        limiter.LimitMemory(maxMemory);
-        limiter.LimitDisk(maxMemory); // avoid using unlimited disk as cache
-        if (debug) printf( "maxMemory set to: %d\n", maxMemory );
+    if (context->maxMemory > 0) {
+        limiter.LimitMemory(context->maxMemory);
+        limiter.LimitDisk(context->maxMemory); // avoid using unlimited disk as cache
+        if (debug) printf( "maxMemory set to: %d\n", context->maxMemory );
     }
 
-    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
+    Magick::Blob srcBlob( context->srcData, context->length );
 
     Magick::Image image;
 
-    Local<Value> srcFormatValue = obj->Get( String::NewSymbol("srcFormat") );
-    String::AsciiValue srcFormat( srcFormatValue->ToString() );
-    if ( ! srcFormatValue->IsUndefined() ) {
-        if (debug) printf( "srcFormat: %s\n", *srcFormat );
-        image.magick( *srcFormat );
+    if( ! context->srcFormat.empty() ){
+        if (debug) printf( "srcFormat: %s\n", context->srcFormat.c_str() );
+        image.magick( context->srcFormat.c_str() );
     }
 
     try {
         image.read( srcBlob );
     }
     catch (Magick::Warning& warning) {
-        if (!ignoreWarnings) {
-            return NanThrowError(warning.what());
+        if (!context->ignoreWarnings) {
+            context->error = warning.what();
+            return;
         } else if (debug) {
             printf("warning: %s\n", warning.what());
         }
     }
     catch (std::exception& err) {
-        return NanThrowError(err.what());
+        context->error = err.what();
+        return;
     }
     catch (...) {
-        return NanThrowError("unhandled error");
+        context->error = std::string("unhandled error");
+        return;
     }
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
-    unsigned int width = obj->Get( NanNew<String>("width") )->Uint32Value();
+    unsigned int width = context->width;
     if (debug) printf( "width: %d\n", width );
 
-    unsigned int height = obj->Get( NanNew<String>("height") )->Uint32Value();
+    unsigned int height = context->height;
     if (debug) printf( "height: %d\n", height );
 
-    Local<Value> stripValue = obj->Get( NanNew<String>("strip") );
-    if ( ! stripValue->IsUndefined() && stripValue->BooleanValue() ) {
+    if ( context->strip ) {
         if (debug) printf( "strip: true\n" );
         image.strip();
     }
 
-    Local<Value> resizeStyleValue = obj->Get( NanNew<String>("resizeStyle") );
-    const char* resizeStyle = "aspectfill";
-    if ( ! resizeStyleValue->IsUndefined() ) {
-        size_t count;
-        resizeStyle = NanCString(resizeStyleValue, &count);
-    }
+    const char* resizeStyle = context->resizeStyle.c_str();
     if (debug) printf( "resizeStyle: %s\n", resizeStyle );
 
-    Local<Value> formatValue = obj->Get( NanNew<String>("format") );
-    const char* format;
-    if ( ! formatValue->IsUndefined() ) {
-        size_t count;
-        format = NanCString(formatValue, &count);
-        if (debug) printf( "format: %s\n", format );
-        image.magick( format );
+    if( ! context->format.empty() ){
+        if (debug) printf( "format: %s\n", context->format.c_str() );
+        image.magick( context->format.c_str() );
     }
 
-    Local<Value> filterValue = obj->Get( NanNew<String>("filter") );
-    if ( ! filterValue->IsUndefined() ) {
-        size_t count;
-        const char *filter = NanCString(filterValue, &count);
+    if( ! context->filter.empty() ){
+        const char *filter = context->filter.c_str();
 
         ssize_t option_info = MagickCore::ParseCommandOption(MagickCore::MagickFilterOptions, Magick::MagickFalse, filter);
         if (option_info != -1) {
@@ -166,13 +170,13 @@ NAN_METHOD(Convert) {
             image.filterType( (Magick::FilterTypes)option_info );
         }
         else {
-            return NanThrowError("filter not supported");
+            context->error = std::string("filter not supported");
+            return;
         }
     }
 
-    Local<Value> blurValue = obj->Get( NanNew<String>("blur") );
-    if ( ! blurValue->IsUndefined() ) {
-        double blur = blurValue->NumberValue();
+    if( ! context->blur.empty() ) {
+        double blur = atof (context->blur.c_str());
         if (debug) printf( "blur: %.1f\n", blur );
         image.image()->blur = blur;
     }
@@ -218,10 +222,12 @@ NAN_METHOD(Convert) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                return NanThrowError(message.c_str());
+                context->error = message;
+                return;
             }
             catch (...) {
-                return NanThrowError("unhandled error");
+                context->error = std::string("unhandled error");
+                return;
             }
 
             // limit canvas size to cropGeometry
@@ -229,7 +235,7 @@ NAN_METHOD(Convert) {
             Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
 
             Magick::Color transparent( "transparent" );
-            if ( format && strcmp( format, "PNG" ) == 0 ) {
+            if ( strcmp( context->format.c_str(), "PNG" ) == 0 ) {
                 // make background transparent for PNG
                 // JPEG background becomes black if set transparent here
                 transparent.alpha( 1. );
@@ -253,10 +259,12 @@ NAN_METHOD(Convert) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                return NanThrowError(message.c_str());
+                context->error = message;
+                return;
             }
             catch (...) {
-                return NanThrowError("unhandled error");
+                context->error = std::string("unhandled error");
+                return;
             }
         }
         else if ( strcmp ( resizeStyle, "fill" ) == 0 ) {
@@ -271,75 +279,191 @@ NAN_METHOD(Convert) {
             catch (std::exception& err) {
                 std::string message = "image.resize failed with error: ";
                 message            += err.what();
-                return NanThrowError(message.c_str());
+                context->error = message;
+                return;
             }
             catch (...) {
-                return NanThrowError("unhandled error");
+                context->error = std::string("unhandled error");
+                return;
             }
         }
         else {
-            return NanThrowError("resizeStyle not supported");
+            context->error = std::string("resizeStyle not supported");
+            return;
         }
         if (debug) printf( "resized to: %d, %d\n", (int)image.columns(), (int)image.rows() );
     }
 
-    unsigned int quality = obj->Get( NanNew<String>("quality") )->Uint32Value();
-    if ( quality ) {
-        if (debug) printf( "quality: %d\n", quality );
-        image.quality( quality );
+    if ( context->quality ) {
+        if (debug) printf( "quality: %d\n", context->quality );
+        image.quality( context->quality );
     }
 
-    int rotate = obj->Get( NanNew<String>("rotate") )->Int32Value();
-    if ( rotate ) {
-        if (debug) printf( "rotate: %d\n", rotate );
-        image.rotate(rotate);
+    if ( context->rotate ) {
+        if (debug) printf( "rotate: %d\n", context->rotate );
+        image.rotate( context->rotate );
     }
 
-    int flip = obj->Get( String::NewSymbol("flip") )->Uint32Value();
-    if ( flip ) {
+    if ( context->flip ) {
         if ( debug ) printf( "flip\n" );
         image.flip();
     }
 
-    int density = obj->Get( NanNew<String>("density") )->Int32Value();
-    if (density) {
-        image.density(Magick::Geometry(density, density));
+    if (context->density) {
+        image.density(Magick::Geometry(context->density, context->density));
     }
 
     Magick::Blob dstBlob;
     image.write( &dstBlob );
 
-    const Handle<Object> retBuffer = NanNewBufferHandle(dstBlob.length());
-    memcpy( Buffer::Data(retBuffer), dstBlob.data(), dstBlob.length() );
-    NanReturnValue(retBuffer);
+    context->dstBlob = dstBlob;
+}
+
+void ConvertAfter(uv_work_t* req) {
+    NanScope();
+
+    convert_im_ctx* context = static_cast<convert_im_ctx*>(req->data);
+    delete req;
+
+    Handle<Value> argv[2];
+
+    if (!context->error.empty()) {
+        argv[0] = Exception::Error(NanNew<String>(context->error.c_str()));
+        argv[1] = NanUndefined();
+    }
+    else {
+        argv[0] = NanUndefined();
+        const Handle<Object> retBuffer = NanNewBufferHandle(context->dstBlob.length());
+        memcpy( Buffer::Data(retBuffer), context->dstBlob.data(), context->dstBlob.length() );
+        argv[1] = retBuffer;
+    }
+
+    TryCatch try_catch; // don't quite see the necessity of this
+
+    context->callback->Call(2, argv);
+
+    delete context->callback;
+
+    delete context;
+
+    if (try_catch.HasCaught())
+        FatalException(try_catch);
 }
 
 // input
 //   args[ 0 ]: options. required, object with following key,values
 //              {
-//                  srcData:        required. Buffer with binary image data
-//                  debug:          optional. 1 or 0
+//                  srcData:     required. Buffer with binary image data
+//                  quality:     optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
+//                  width:       optional. px.
+//                  height:      optional. px.
+//                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
+//                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
+//                  filter:      optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
+//                  blur:        optional. ex: 0.8
+//                  strip:       optional. default: false. strips comments out from image.
+//                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
+//                  debug:       optional. 1 or 0
 //              }
-NAN_METHOD(Identify) {
+//   args[ 1 ]: callback. optional, if present runs async and returns result with callback(error, buffer)
+NAN_METHOD(Convert) {
     NanScope();
-    MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
-    if ( args.Length() != 1 ) {
-        return NanThrowError("identify() requires 1 (option) argument!");
+    bool isSync = (args.Length() == 1);
+
+    if ( args.Length() < 1 ) {
+        return NanThrowError("convert() requires 1 (option) argument!");
     }
+
+    if ( ! args[ 0 ]->IsObject() ) {
+        return NanThrowError("convert()'s 1st argument should be an object");
+    }
+
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
     Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
-        return NanThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
+        return NanThrowError("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
-    if (debug) printf( "debug: on\n" );
-    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
+    convert_im_ctx* context = new convert_im_ctx();
+    context->srcData = Buffer::Data(srcData);
+    context->length = Buffer::Length(srcData);
+    context->debug = obj->Get( NanNew<String>("debug") )->Uint32Value();
+    context->ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
+    context->maxMemory = obj->Get( NanNew<String>("maxMemory") )->Uint32Value();
+    context->width = obj->Get( NanNew<String>("width") )->Uint32Value();
+    context->height = obj->Get( NanNew<String>("height") )->Uint32Value();
+    context->quality = obj->Get( NanNew<String>("quality") )->Uint32Value();
+    context->rotate = obj->Get( NanNew<String>("rotate") )->Int32Value();
+    context->flip = obj->Get( NanNew<String>("flip") )->Uint32Value();
+    context->density = obj->Get( NanNew<String>("density") )->Int32Value();
 
-    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
+    Local<Value> stripValue = obj->Get( NanNew<String>("strip") );
+    context->strip = ! stripValue->IsUndefined() && stripValue->BooleanValue();
+
+    // manage blur as string for detect is empty
+    Local<Value> blurValue = obj->Get( NanNew<String>("blur") );
+    context->blur = "";
+    if ( ! blurValue->IsUndefined() ) {
+        double blurD = blurValue->NumberValue();
+        std::ostringstream strs;
+        strs << blurD;
+        context->blur = strs.str();
+    }
+
+    // shared unused counter for NanCString
+    size_t count;
+
+    Local<Value> resizeStyleValue = obj->Get( NanNew<String>("resizeStyle") );
+    context->resizeStyle = !resizeStyleValue->IsUndefined() ?
+        NanCString(resizeStyleValue, &count) : "aspectfill";
+
+    Local<Value> formatValue = obj->Get( NanNew<String>("format") );
+    context->format = !formatValue->IsUndefined() ?
+         NanCString(formatValue, &count) : "";
+
+    Local<Value> srcFormatValue = obj->Get( NanNew<String>("srcFormat") );
+    context->srcFormat = !srcFormatValue->IsUndefined() ?
+        NanCString(srcFormatValue, &count) : "";
+
+    Local<Value> filterValue = obj->Get( NanNew<String>("filter") );
+    context->filter = !filterValue->IsUndefined() ?
+        NanCString(filterValue, &count) : "";
+
+    uv_work_t* req = new uv_work_t();
+    req->data = context;
+    if(!isSync) {
+        context->callback = new NanCallback(Local<Function>::Cast(args[1]));
+
+        uv_queue_work(uv_default_loop(), req, DoConvert, (uv_after_work_cb)ConvertAfter);
+
+        NanReturnUndefined();
+    } else {
+        DoConvert(req);
+        convert_im_ctx* context = static_cast<convert_im_ctx*>(req->data);
+        delete req;
+        if (!context->error.empty()) {
+            const char *err_str = context->error.c_str();
+            delete context;
+            return NanThrowError(err_str);
+        }
+        else {
+            const Handle<Object> retBuffer = NanNewBufferHandle(context->dstBlob.length());
+            memcpy( Buffer::Data(retBuffer), context->dstBlob.data(), context->dstBlob.length() );
+            delete context;
+            NanReturnValue(retBuffer);
+        }
+    }
+}
+
+void DoIdentify(uv_work_t* req) {
+
+    MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
+
+    identify_im_ctx* context = static_cast<identify_im_ctx*>(req->data);
+
+    Magick::Blob srcBlob( context->srcData, context->length );
 
     Magick::Image image;
     try {
@@ -349,37 +473,127 @@ NAN_METHOD(Identify) {
         std::string what (err.what());
         std::string message = std::string("image.read failed with error: ") + what;
         std::size_t found   = what.find( "warn" );
-        if (ignoreWarnings && (found != std::string::npos)) {
-            if (debug) printf("warning: %s\n", message.c_str());
+        if (context->ignoreWarnings && (found != std::string::npos)) {
+            if (context->debug) printf("warning: %s\n", message.c_str());
         }
         else {
-            return NanThrowError(message.c_str());
+            context->error = message;
         }
     }
     catch (...) {
-        return NanThrowError("unhandled error");
+        context->error = std::string("unhandled error");
+    }
+    if(!context->error.empty()) {
+        return;
     }
 
-    if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
+    if (context->debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
-    Handle<Object> out = NanNew<Object>();
+    context->image = image;
+}
 
-    out->Set(NanNew<String>("width"), NanNew<Integer>(image.columns()));
-    out->Set(NanNew<String>("height"), NanNew<Integer>(image.rows()));
-    out->Set(NanNew<String>("depth"), NanNew<Integer>(image.depth()));
-    out->Set(NanNew<String>("format"), NanNew<String>(image.magick().c_str()));
+void BuildIdentifyResult(uv_work_t *req, Handle<Value> *argv) {
+    identify_im_ctx* context = static_cast<identify_im_ctx*>(req->data);
 
-    Handle<Object> out_density = NanNew<Object>();
-    Magick::Geometry density = image.density();
-    out_density->Set(NanNew<String>("width"), NanNew<Integer>(density.width()));
-    out_density->Set(NanNew<String>("height"), NanNew<Integer>(density.height()));
-    out->Set(NanNew<String>("density"), out_density);
+    if (!context->error.empty()) {
+        argv[0] = Exception::Error(NanNew<String>(context->error.c_str()));
+        argv[1] = NanUndefined();
+    }
+    else {
+        argv[0] = NanUndefined();
+        Handle<Object> out = NanNew<Object>();
 
-    Handle<Object> out_exif = NanNew<Object>();
-    out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(image.attribute("EXIF:Orientation").c_str())));
-    out->Set(NanNew<String>("exif"), out_exif);
+        out->Set(NanNew<String>("width"), NanNew<Integer>(context->image.columns()));
+        out->Set(NanNew<String>("height"), NanNew<Integer>(context->image.rows()));
+        out->Set(NanNew<String>("depth"), NanNew<Integer>(context->image.depth()));
+        out->Set(NanNew<String>("format"), NanNew<String>(context->image.magick().c_str()));
 
-    NanReturnValue(out);
+        Handle<Object> out_density = NanNew<Object>();
+        Magick::Geometry density = context->image.density();
+        out_density->Set(NanNew<String>("width"), NanNew<Integer>(density.width()));
+        out_density->Set(NanNew<String>("height"), NanNew<Integer>(density.height()));
+        out->Set(NanNew<String>("density"), out_density);
+
+        Handle<Object> out_exif = NanNew<Object>();
+        out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(context->image.attribute("EXIF:Orientation").c_str())));
+        out->Set(NanNew<String>("exif"), out_exif);
+
+        argv[1] = out;
+    }
+}
+
+void IdentifyAfter(uv_work_t* req) {
+    NanScope();
+
+    Handle<Value> argv[2];
+    BuildIdentifyResult(req,argv);
+
+    identify_im_ctx* context = static_cast<identify_im_ctx*>(req->data);
+
+    TryCatch try_catch; // don't quite see the necessity of this
+
+    context->callback->Call(2, argv);
+
+    delete context->callback;
+    delete context;
+    delete req;
+
+    if (try_catch.HasCaught())
+        FatalException(try_catch);
+}
+
+// input
+//   args[ 0 ]: options. required, object with following key,values
+//              {
+//                  srcData:        required. Buffer with binary image data
+//                  debug:          optional. 1 or 0
+//              }
+//   args[ 1 ]: callback. optional, if present runs async and returns result with callback(error, info)
+NAN_METHOD(Identify) {
+    NanScope();
+
+    bool isSync = args.Length() == 1;
+
+    if ( args.Length() < 1 ) {
+        return NanThrowError("identify() requires 1 (option) argument!");
+    }
+    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        return NanThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    }
+
+    identify_im_ctx* context = new identify_im_ctx();
+    context->srcData = Buffer::Data(srcData);
+    context->length = Buffer::Length(srcData);
+
+    context->debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
+    context->ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
+
+    if (context->debug) printf( "debug: on\n" );
+    if (context->debug) printf( "ignoreWarnings: %d\n", context->ignoreWarnings );
+
+    uv_work_t* req = new uv_work_t();
+    req->data = context;
+    if(!isSync) {
+        context->callback = new NanCallback(Local<Function>::Cast(args[1]));
+
+        uv_queue_work(uv_default_loop(), req, DoIdentify, (uv_after_work_cb)IdentifyAfter);
+
+        NanReturnUndefined();
+    } else {
+        DoIdentify(req);
+        Handle<Value> argv[2];
+        BuildIdentifyResult(req,argv);
+        delete static_cast<identify_im_ctx*>(req->data);
+        delete req;
+        if(argv[0]->IsUndefined()){
+            NanReturnValue(argv[1]);
+        } else {
+            return NanThrowError(argv[0]);
+        }
+    }
 }
 
 // input
