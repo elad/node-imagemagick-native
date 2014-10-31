@@ -379,6 +379,10 @@ NAN_METHOD(Convert) {
         return NanThrowError("convert()'s 1st argument should be an object");
     }
 
+    if( ! isSync && ! args[ 1 ]->IsFunction() ) {
+        return NanThrowError("convert()'s 2nd argument should be a function");
+    }
+
     Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
 
     Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
@@ -562,6 +566,10 @@ NAN_METHOD(Identify) {
     Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
         return NanThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    }
+
+    if( ! isSync && ! args[ 1 ]->IsFunction() ) {
+        return NanThrowError("indentify()'s 2nd argument should be a function");
     }
 
     identify_im_ctx* context = new identify_im_ctx();
