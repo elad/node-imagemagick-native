@@ -26,7 +26,7 @@
 
 ## API
 
-### convert( options )
+### convert( options, [callback] )
 
 Convert a buffer provided as `options.srcData` and return a Buffer.
 
@@ -54,7 +54,14 @@ The `options` argument can have following values:
         ignoreWarnings: optional. 1 or 0
     }
 
-### identify( options )
+An optional `callback` argument can be provided, in which case `convert` will run asynchronously. When it is done, `callback` will be called with the error and the result buffer:
+```
+imagemagick.convert(options, function (err, buffer) {
+    // check err, use buffer
+});
+```
+
+### identify( options, [callback] )
 
 Identify a buffer provided as `srcData` and return an object.
 
@@ -65,6 +72,13 @@ The `options` argument can have following values:
         debug:          optional. 1 or 0
         ignoreWarnings: optional. 1 or 0
     }
+
+An optional `callback` argument can be provided, in which case `identify` will run asynchronously. When it is done, `callback` will be called with the error and the result object:
+```
+imagemagick.convert(options, function (err, result) {
+    // check err, use result
+});
+```
 
 The method returns an object similar to:
 
