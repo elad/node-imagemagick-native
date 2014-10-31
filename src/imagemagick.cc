@@ -62,6 +62,9 @@ struct im_ctx_base {
     int debug;
     int ignoreWarnings;
 
+    // generated blob by convert or composite
+    Magick::Blob dstBlob;
+
     virtual ~im_ctx_base() {}
 };
 // Extra context for identify
@@ -88,9 +91,16 @@ struct convert_im_ctx : im_ctx_base {
 
     std::string srcFormat;
 
-    Magick::Blob dstBlob;
-
     convert_im_ctx() {}
+};
+// Extra context for composite
+struct composite_im_ctx : im_ctx_base {
+    char* compositeData;
+    size_t compositeLength;
+
+    std::string gravity;
+
+    composite_im_ctx() {}
 };
 
 void DoConvert(uv_work_t* req) {
@@ -319,10 +329,11 @@ void DoConvert(uv_work_t* req) {
     context->dstBlob = dstBlob;
 }
 
-void ConvertAfter(uv_work_t* req) {
+// Make callback from convert or composite
+void GeneratedBlobAfter(uv_work_t* req) {
     NanScope();
 
-    convert_im_ctx* context = static_cast<convert_im_ctx*>(req->data);
+    im_ctx_base* context = static_cast<im_ctx_base*>(req->data);
     delete req;
 
     Handle<Value> argv[2];
@@ -440,7 +451,7 @@ NAN_METHOD(Convert) {
     if(!isSync) {
         context->callback = new NanCallback(Local<Function>::Cast(args[1]));
 
-        uv_queue_work(uv_default_loop(), req, DoConvert, (uv_after_work_cb)ConvertAfter);
+        uv_queue_work(uv_default_loop(), req, DoConvert, (uv_after_work_cb)GeneratedBlobAfter);
 
         NanReturnUndefined();
     } else {
@@ -798,43 +809,19 @@ NAN_METHOD(QuantizeColors) {
     NanReturnValue(out);
 }
 
-// input
-//   args[ 0 ]: options. required, object with following key,values
-//              {
-//                  srcData:        required. Buffer with binary image data
-//                  compositeData:  required. Buffer with image to composite
-//                  gravity:        optional. One of CenterGravity EastGravity
-//                                  ForgetGravity NorthEastGravity NorthGravity
-//                                  NorthWestGravity SouthEastGravity SouthGravity
-//                                  SouthWestGravity WestGravity
-//                  debug:          optional. 1 or 0
-//              }
-NAN_METHOD(Composite) {
-    NanScope();
+void DoComposite(uv_work_t* req) {
+
+    composite_im_ctx* context = static_cast<composite_im_ctx*>(req->data);
+
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
-    if ( args.Length() != 1 ) {
-        return NanThrowError("composite() requires 1 (option) argument!");
-    }
-    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+    int debug = context->debug;
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
-    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
-        return NanThrowError("composite()'s 1st argument should have \"srcData\" key with a Buffer instance");
-    }
-
-    Local<Object> compositeData = Local<Object>::Cast( obj->Get( NanNew<String>("compositeData") ) );
-    if ( compositeData->IsUndefined() || ! Buffer::HasInstance(compositeData) ) {
-        return NanThrowError("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
-    }
-
-    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
     if (debug) printf( "debug: on\n" );
-    if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
+    if (debug) printf( "ignoreWarnings: %d\n", context->ignoreWarnings );
 
-    Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData) );
-    Magick::Blob compositeBlob( Buffer::Data(compositeData), Buffer::Length(compositeData) );
+    Magick::Blob srcBlob( context->srcData, context->length );
+    Magick::Blob compositeBlob( context->compositeData, context->compositeLength );
 
     Magick::Image image;
     try {
@@ -844,22 +831,22 @@ NAN_METHOD(Composite) {
         std::string what (err.what());
         std::string message = std::string("image.read failed with error: ") + what;
         std::size_t found   = what.find( "warn" );
-        if (ignoreWarnings && (found != std::string::npos)) {
+        if (context->ignoreWarnings && (found != std::string::npos)) {
             if (debug) printf("warning: %s\n", message.c_str());
         }
         else {
-            return NanThrowError(message.c_str());
+            context->error = message;
+            return;
         }
     }
     catch (...) {
-        return NanThrowError("unhandled error");
+        context->error = std::string("unhandled error");
+        return;
     }
 
     Magick::GravityType gravityType;
 
-    Local<Value> gravityValue = obj->Get( NanNew<String>("gravity") );
-    size_t count;
-    const char* gravity = NanCString(gravityValue, &count);
+    const char* gravity = context->gravity.c_str();
 
     if(strcmp("CenterGravity", gravity)==0)         gravityType=Magick::CenterGravity;
     else if(strcmp("EastGravity", gravity)==0)      gravityType=Magick::EastGravity;
@@ -886,15 +873,17 @@ NAN_METHOD(Composite) {
         std::string what (err.what());
         std::string message = std::string("compositeImage.read failed with error: ") + what;
         std::size_t found   = what.find( "warn" );
-        if (ignoreWarnings && (found != std::string::npos)) {
+        if (context->ignoreWarnings && (found != std::string::npos)) {
             if (debug) printf("warning: %s\n", message.c_str());
         }
         else {
-            return NanThrowError(message.c_str());
+            context->error = message;
+            return;
         }
     }
     catch (...) {
-        return NanThrowError("unhandled error");
+        context->error = std::string("unhandled error");
+        return;
     }
 
     image.composite(compositeImage,gravityType,Magick::OverCompositeOp);
@@ -902,9 +891,84 @@ NAN_METHOD(Composite) {
     Magick::Blob dstBlob;
     image.write( &dstBlob );
 
-    const Handle<Object> retBuffer = NanNewBufferHandle(dstBlob.length());
-    memcpy( Buffer::Data(retBuffer), dstBlob.data(), dstBlob.length() );
-    NanReturnValue(retBuffer);
+    context->dstBlob = dstBlob;
+}
+
+// input
+//   args[ 0 ]: options. required, object with following key,values
+//              {
+//                  srcData:        required. Buffer with binary image data
+//                  compositeData:  required. Buffer with image to composite
+//                  gravity:        optional. One of CenterGravity EastGravity
+//                                  ForgetGravity NorthEastGravity NorthGravity
+//                                  NorthWestGravity SouthEastGravity SouthGravity
+//                                  SouthWestGravity WestGravity
+//                  debug:          optional. 1 or 0
+//              }
+//   args[ 1 ]: callback. optional, if present runs async and returns result with callback(error, buffer)
+NAN_METHOD(Composite) {
+    NanScope();
+
+    bool isSync = (args.Length() == 1);
+
+    if ( args.Length() < 1 ) {
+        return NanThrowError("composite() requires 1 (option) argument!");
+    }
+    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
+    if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
+        return NanThrowError("composite()'s 1st argument should have \"srcData\" key with a Buffer instance");
+    }
+
+    Local<Object> compositeData = Local<Object>::Cast( obj->Get( NanNew<String>("compositeData") ) );
+    if ( compositeData->IsUndefined() || ! Buffer::HasInstance(compositeData) ) {
+        return NanThrowError("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
+    }
+
+    if( ! isSync && ! args[ 1 ]->IsFunction() ) {
+        return NanThrowError("convert()'s 2nd argument should be a function");
+    }
+
+    composite_im_ctx* context = new composite_im_ctx();
+    context->debug = obj->Get( NanNew<String>("debug") )->Uint32Value();
+    context->ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
+
+    context->srcData = Buffer::Data(srcData);
+    context->length = Buffer::Length(srcData);
+
+    context->compositeData = Buffer::Data(compositeData);
+    context->compositeLength = Buffer::Length(compositeData);
+
+    Local<Value> gravityValue = obj->Get( NanNew<String>("gravity") );
+    size_t count;
+    context->gravity = !gravityValue->IsUndefined() ?
+         NanCString(gravityValue, &count) : "";
+
+    uv_work_t* req = new uv_work_t();
+    req->data = context;
+    if(!isSync) {
+        context->callback = new NanCallback(Local<Function>::Cast(args[1]));
+
+        uv_queue_work(uv_default_loop(), req, DoComposite, (uv_after_work_cb)GeneratedBlobAfter);
+
+        NanReturnUndefined();
+    } else {
+        DoComposite(req);
+        composite_im_ctx* context = static_cast<composite_im_ctx*>(req->data);
+        delete req;
+        if (!context->error.empty()) {
+            const char *err_str = context->error.c_str();
+            delete context;
+            return NanThrowError(err_str);
+        }
+        else {
+            const Handle<Object> retBuffer = NanNewBufferHandle(context->dstBlob.length());
+            memcpy( Buffer::Data(retBuffer), context->dstBlob.data(), context->dstBlob.length() );
+            delete context;
+            NanReturnValue(retBuffer);
+        }
+    }
 }
 
 NAN_METHOD(Version) {
