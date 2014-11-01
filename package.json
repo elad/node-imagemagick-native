@@ -17,14 +17,15 @@
   "contributors": [],
   "main": "./index.js",
   "scripts": {
-    "test": "tap test/test.js test/test.async.js",
+    "test": "tap test/test.js test/test.async.js test/test.streams.js",
     "install": "node-gyp rebuild"
   },
   "engines": {
     "node": "*"
   },
   "dependencies": {
-    "nan": "~1.1.0"
+    "nan": "~1.1.0",
+    "readable-stream": "*"
   },
   "devDependencies": {
     "tap": "*",
