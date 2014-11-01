@@ -132,7 +132,7 @@ The method returns an array similar to:
         }
     ]
 
-### composite( options )
+### composite( options, [callback] )
 
 Composite a buffer provided as `options.compositeData` on a buffer provided as `options.srcData` with gravity specified by `options.gravity` and return a Buffer.
 
@@ -145,6 +145,13 @@ The `options` argument can have following values:
         debug:          optional. 1 or 0
         ignoreWarnings: optional. 1 or 0
     }
+
+An optional `callback` argument can be provided, in which case `composite` will run asynchronously. When it is done, `callback` will be called with the error and the result buffer:
+```
+imagemagick.composite(options, function (err, buffer) {
+    // check err, use buffer
+});
+```
 
 This library currently provide only these, please try [node-imagemagick](https://github.com/rsms/node-imagemagick/) if you want more.
 

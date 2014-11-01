@@ -44,3 +44,16 @@ test( 'identify results async', function (t) {
         t.end();
     });
 });
+
+test( 'composite async', function (t) {
+    t.plan(1);
+    imagemagick.composite({
+        srcData: require('fs').readFileSync( "test.quantizeColors.png" ),
+        compositeData: require('fs').readFileSync("test.png"),
+        debug: debug
+    },function(err,buffer){
+        t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+        saveToFileIfDebug( buffer, "out.composite-async.png" );
+        t.end();
+    });
+});
