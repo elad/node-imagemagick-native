@@ -580,7 +580,7 @@ NAN_METHOD(Identify) {
     }
 
     if( ! isSync && ! args[ 1 ]->IsFunction() ) {
-        return NanThrowError("indentify()'s 2nd argument should be a function");
+        return NanThrowError("identify()'s 2nd argument should be a function");
     }
 
     identify_im_ctx* context = new identify_im_ctx();
@@ -815,10 +815,8 @@ void DoComposite(uv_work_t* req) {
 
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
-    int debug = context->debug;
-
-    if (debug) printf( "debug: on\n" );
-    if (debug) printf( "ignoreWarnings: %d\n", context->ignoreWarnings );
+    if (context->debug) printf( "debug: on\n" );
+    if (context->debug) printf( "ignoreWarnings: %d\n", context->ignoreWarnings );
 
     Magick::Blob srcBlob( context->srcData, context->length );
     Magick::Blob compositeBlob( context->compositeData, context->compositeLength );
@@ -832,7 +830,7 @@ void DoComposite(uv_work_t* req) {
         std::string message = std::string("image.read failed with error: ") + what;
         std::size_t found   = what.find( "warn" );
         if (context->ignoreWarnings && (found != std::string::npos)) {
-            if (debug) printf("warning: %s\n", message.c_str());
+            if (context->debug) printf("warning: %s\n", message.c_str());
         }
         else {
             context->error = message;
@@ -860,10 +858,10 @@ void DoComposite(uv_work_t* req) {
     else if(strcmp("WestGravity", gravity)==0)      gravityType=Magick::WestGravity;
     else {
         gravityType = Magick::ForgetGravity;
-        if (debug) printf( "invalid gravity: '%s' fell through to ForgetGravity\n", gravity);
+        if (context->debug) printf( "invalid gravity: '%s' fell through to ForgetGravity\n", gravity);
     }
 
-    if (debug) printf( "gravity: %s (%d)\n", gravity,(int) gravityType);
+    if (context->debug) printf( "gravity: %s (%d)\n", gravity,(int) gravityType);
 
     Magick::Image compositeImage;
     try {
@@ -874,7 +872,7 @@ void DoComposite(uv_work_t* req) {
         std::string message = std::string("compositeImage.read failed with error: ") + what;
         std::size_t found   = what.find( "warn" );
         if (context->ignoreWarnings && (found != std::string::npos)) {
-            if (debug) printf("warning: %s\n", message.c_str());
+            if (context->debug) printf("warning: %s\n", message.c_str());
         }
         else {
             context->error = message;
@@ -927,7 +925,7 @@ NAN_METHOD(Composite) {
     }
 
     if( ! isSync && ! args[ 1 ]->IsFunction() ) {
-        return NanThrowError("convert()'s 2nd argument should be a function");
+        return NanThrowError("composite()'s 2nd argument should be a function");
     }
 
     composite_im_ctx* context = new composite_im_ctx();
