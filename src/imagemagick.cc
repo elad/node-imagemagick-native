@@ -188,7 +188,7 @@ void DoConvert(uv_work_t* req) {
     if( ! context->blur.empty() ) {
         double blur = atof (context->blur.c_str());
         if (debug) printf( "blur: %.1f\n", blur );
-        image.image()->blur = blur;
+        image.blur(0, blur);
     }
 
     if ( width || height ) {
