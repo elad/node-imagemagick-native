@@ -78,7 +78,7 @@ imagemagick.convert({
 There is also a stream version:
 
 ```js
-fs.createReadStream('input.png').pipe(imagemagick.convert({
+fs.createReadStream('input.png').pipe(imagemagick.streams.convert({
     // options
 })).pipe(fs.createWriteStream('output.png'));
 ```
