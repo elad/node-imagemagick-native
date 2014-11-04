@@ -341,7 +341,7 @@ Original:
 Modified:
 
 rotate 90 degrees | rotate 180 degrees | flip | flip + rotate 180 degrees = mirror
-:---: | :---: | :---:
+:---: | :---: | :---: | :---:
 ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_rotate_90.jpg 'rotate 90') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_rotate_180.jpg 'rotate 180') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_flip.jpg 'flip') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_mirror.jpg 'flip + rotate 180 = mirror')
 
 *Image courtesy of [Bill Gracey](https://www.flickr.com/photos/9422878@N08/6482704235).*
