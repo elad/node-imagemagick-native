@@ -67,7 +67,7 @@ Notes
 
 An optional `callback` argument can be provided, in which case `convert` will run asynchronously. When it is done, `callback` will be called with the error and the result buffer:
 
-```
+```js
 imagemagick.convert({
     // options
 }, function (err, buffer) {
@@ -77,7 +77,7 @@ imagemagick.convert({
 
 There is also a stream version:
 
-```
+```js
 fs.createReadStream('input.png').pipe(imagemagick.convert({
     // options
 })).pipe(fs.createWriteStream('output.png'));
@@ -99,7 +99,7 @@ The `options` argument can have following values:
 
 An optional `callback` argument can be provided, in which case `identify` will run asynchronously. When it is done, `callback` will be called with the error and the result object:
 
-```
+```js
 imagemagick.identify({
     // options
 }, function (err, result) {
@@ -109,19 +109,21 @@ imagemagick.identify({
 
 The method returns an object similar to:
 
-    {
-        format: 'JPEG',
-        width: 3904,
-        height: 2622,
-        depth: 8,
-        density : {
-            width : 300,
-            height : 300
-        },
-        exif: {
-            orientation: 0 // if none exists or e.g. 3 (portrait iPad pictures)
-        }
+```js
+{
+    format: 'JPEG',
+    width: 3904,
+    height: 2622,
+    depth: 8,
+    density : {
+        width : 300,
+        height : 300
+    },
+    exif: {
+        orientation: 0 // if none exists or e.g. 3 (portrait iPad pictures)
     }
+}
+```
 
 <a name='quantizeColors'></a>
 
@@ -140,26 +142,28 @@ The `options` argument can have following values:
 
 The method returns an array similar to:
 
-    [
-        {
-            r: 83,
-            g: 56,
-            b: 35,
-            hex: '533823'
-        },
-        {
-            r: 149,
-            g: 110,
-            b: 73,
-            hex: '956e49'
-        },
-        {
-            r: 165,
-            g: 141,
-            b: 111,
-            hex: 'a58d6f
-        }
-    ]
+```js
+[
+    {
+        r: 83,
+        g: 56,
+        b: 35,
+        hex: '533823'
+    },
+    {
+        r: 149,
+        g: 110,
+        b: 73,
+        hex: '956e49'
+    },
+    {
+        r: 165,
+        g: 141,
+        b: 111,
+        hex: 'a58d6f
+    }
+]
+```
 
 <a name='composite'></a>
 
@@ -179,7 +183,7 @@ The `options` argument can have following values:
 
 An optional `callback` argument can be provided, in which case `composite` will run asynchronously. When it is done, `callback` will be called with the error and the result buffer:
 
-```
+```js
 imagemagick.composite(options, function (err, buffer) {
     // check err, use buffer
 });
@@ -205,18 +209,22 @@ The `options` argument can have following values:
 
 Example usage:
 
-    // retrieve first pixel of image
-    var pixels = imagemagick.getConstPixels({
-        srcData: imageBuffer, // white image
-        x: 0,
-        y: 0,
-        columns: 1,
-        rows: 1
-    });
+```js
+// retrieve first pixel of image
+var pixels = imagemagick.getConstPixels({
+    srcData: imageBuffer, // white image
+    x: 0,
+    y: 0,
+    columns: 1,
+    rows: 1
+});
+```
 
 Returns:
 
-    [ { red: 65535, green: 65535, blue: 65535, opacity: 65535 } ]
+```js
+[ { red: 65535, green: 65535, blue: 65535, opacity: 65535 } ]
+```
 
 Where each color value's size is `imagemagick.quantumDepth` bits.
 
@@ -245,7 +253,7 @@ ex: '6.7.7'
 
 Convert from one format to another with quality control:
 
-```
+```js
 fs.writeFileSync('after.png', imagemagick.convert({
 	srcData: fs.readFileSync('before.jpg),
 	quality: 100 // (best) to 1 (worst)
@@ -270,7 +278,7 @@ quality 100 | quality 50 | quality 1
 
 Blur image:
 
-```
+```js
 fs.writeFileSync('after.jpg', imagemagick.convert({
 	srcData: fs.readFileSync('before.jpg),
 	blur: 5
@@ -291,7 +299,7 @@ Resized images by specifying `width` and `height`. There are three resizing styl
   * `aspectfit`: Scales the image so that it will not have to be cropped.
   * `fill`: Squishes or stretches the image so that it fills exactly the specified size.
 
-```
+```js
 fs.writeFileSync('after_resize.jpg', imagemagick.convert({
 	srcData: fs.readFileSync('before_resize.jpg'),
 	width: 100,
@@ -318,7 +326,7 @@ aspectfill | aspectfit | fill
 
 Rotate and flip images, and combine the two to mirror:
 
-```
+```js
 fs.writeFileSync('after_rotateflip.jpg', imagemagick.convert({
 	srcData: fs.readFileSync('before_rotateflip.jpg'),
 	rotate: 180,
