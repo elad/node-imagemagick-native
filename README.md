@@ -255,7 +255,7 @@ Convert from one format to another with quality control:
 
 ```js
 fs.writeFileSync('after.png', imagemagick.convert({
-	srcData: fs.readFileSync('before.jpg),
+	srcData: fs.readFileSync('before.jpg'),
 	quality: 100 // (best) to 1 (worst)
 }));
 ```
@@ -280,7 +280,7 @@ Blur image:
 
 ```js
 fs.writeFileSync('after.jpg', imagemagick.convert({
-	srcData: fs.readFileSync('before.jpg),
+	srcData: fs.readFileSync('before.jpg'),
 	blur: 5
 }));
 ```
