@@ -160,7 +160,7 @@ The method returns an array similar to:
         r: 165,
         g: 141,
         b: 111,
-        hex: 'a58d6f
+        hex: 'a58d6f'
     }
 ]
 ```
