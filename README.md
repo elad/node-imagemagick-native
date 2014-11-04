@@ -2,31 +2,37 @@
 
 [Imagemagick](http://www.imagemagick.org/)'s [Magick++](http://www.imagemagick.org/Magick++/) binding for [Node](http://nodejs.org/).
 
+Features
+
+  * Native bindings to the C/C++ Magick++ library
+  * Async, sync, and stream API
+  * Support for `convert`, `identify`, `composite`, and other utility functions
+
 [![Build Status](https://travis-ci.org/mash/node-imagemagick-native.png)](https://travis-ci.org/mash/node-imagemagick-native)
 
-## Example
+Table of contents
 
-    var imagemagick = require('imagemagick-native')
-    ,   srcData     = require('fs').readFileSync('./test/test.png');
+  * [API Reference](#api)
+    * [`convert`](#convert)
+    * [`identify`](#identify)
+    * [`quantizeColors`](#quantizeColors)
+    * [`composite`](#composite)
+    * [`getConstPixels`](#getConstPixels)
+    * [`quantumDepth`](#quantumDepth)
+    * [`version`](#version)
+  * [Examples](#examples)
+    * [Convert formats](#example-convert) (PNG to JPEG)
+    * [Blur](#example-blur)
+    * [Resize](#example-resize)
+    * [Rotate, flip, and mirror](#example-rotate-flip-mirror)
 
-    // returns a Buffer instance
-    var resizedBuffer = imagemagick.convert({
-        srcData: srcData, // provide a Buffer instance
-        width: 100,
-        height: 100,
-        resizeStyle: "aspectfill",
-        quality: 80,
-        format: 'JPEG',
-        filter: 'Lagrange',
-        blur: 0.8,
-        strip: true
-    });
-
-    require('fs').writeFileSync('./test/out.png', resizedBuffer, 'binary');
+<a name='api'></a>
 
 ## API
 
-### convert( options, [callback] )
+<a name='convert'></a>
+
+### convert(options, [callback])
 
 Convert a buffer provided as `options.srcData` and return a Buffer.
 
@@ -34,34 +40,52 @@ The `options` argument can have following values:
 
     {
         srcData:        required. Buffer with binary image data
-        srcFormat:      optional. force source format if not detected (e.g. "ICO"), one of http://www.imagemagick.org/script/formats.php
-        quality:        optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
+        srcFormat:      optional. force source format if not detected (e.g. 'ICO'), one of http://www.imagemagick.org/script/formats.php
+        quality:        optional. 1-100 integer, default 75. JPEG/MIFF/PNG compression level.
         width:          optional. px.
         height:         optional. px.
         density         optional. Integer dpi value to convert
-        resizeStyle:    optional. default: "aspectfill". can be "aspectfit", "fill"
+        resizeStyle:    optional. default: 'aspectfill'. can be 'aspectfit', 'fill'
                         aspectfill: keep aspect ratio, get the exact provided size,
                                     crop top/bottom or left/right if necessary
                         aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
                         fill:       forget aspect ratio, get the exact provided size
-        format:         optional. output format, one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
-        filter:         optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
+        format:         optional. output format, ex: 'JPEG'. see below for candidates
+        filter:         optional. resize filter. ex: 'Lagrange', 'Lanczos'.  see below for candidates
         blur:           optional. ex: 0.8
         strip:          optional. default: false. strips comments out from image.
         rotate:         optional. degrees.
         flip:           optional. vertical flip, true or false.
-        debug:          optional. 1 or 0
-        ignoreWarnings: optional. 1 or 0
+        debug:          optional. true or false
+        ignoreWarnings: optional. true or false
     }
 
+Notes
+
+  * `format` values can be found [here](http://www.imagemagick.org/script/formats.php)
+  * `filter` values can be found [here](http://www.imagemagick.org/script/command-line-options.php?ImageMagick=9qgp8o06f469m3cna9lfigirc5#filter)
+
 An optional `callback` argument can be provided, in which case `convert` will run asynchronously. When it is done, `callback` will be called with the error and the result buffer:
+
 ```
-imagemagick.convert(options, function (err, buffer) {
+imagemagick.convert({
+    // options
+}, function (err, buffer) {
     // check err, use buffer
 });
 ```
 
-### identify( options, [callback] )
+There is also a stream version:
+
+```
+fs.createReadStream('input.png').pipe(imagemagick.convert({
+    // options
+})).pipe(fs.createWriteStream('output.png'));
+```
+
+<a name='identify'></a>
+
+### identify(options, [callback])
 
 Identify a buffer provided as `srcData` and return an object.
 
@@ -69,13 +93,16 @@ The `options` argument can have following values:
 
     {
         srcData:        required. Buffer with binary image data
-        debug:          optional. 1 or 0
-        ignoreWarnings: optional. 1 or 0
+        debug:          optional. true or false
+        ignoreWarnings: optional. true or false
     }
 
 An optional `callback` argument can be provided, in which case `identify` will run asynchronously. When it is done, `callback` will be called with the error and the result object:
+
 ```
-imagemagick.convert(options, function (err, result) {
+imagemagick.identify({
+    // options
+}, function (err, result) {
     // check err, use result
 });
 ```
@@ -92,11 +119,13 @@ The method returns an object similar to:
             height : 300
         },
         exif: {
-            orientation: 0 # 0 if none exists
+            orientation: 0 // if none exists or e.g. 3 (portrait iPad pictures)
         }
     }
 
-### quantizeColors( options )
+<a name='quantizeColors'></a>
+
+### quantizeColors(options)
 
 Quantize the image to a specified amount of colors from a buffer provided as `srcData` and return an array.
 
@@ -105,8 +134,8 @@ The `options` argument can have following values:
     {
         srcData:        required. Buffer with binary image data
         colors:         required. number of colors to extract, defaults to 5
-        debug:          optional. 1 or 0
-        ignoreWarnings: optional. 1 or 0
+        debug:          optional. true or false
+        ignoreWarnings: optional. true or false
     }
 
 The method returns an array similar to:
@@ -132,7 +161,9 @@ The method returns an array similar to:
         }
     ]
 
-### composite( options, [callback] )
+<a name='composite'></a>
+
+### composite(options, [callback])
 
 Composite a buffer provided as `options.compositeData` on a buffer provided as `options.srcData` with gravity specified by `options.gravity` and return a Buffer.
 
@@ -141,12 +172,13 @@ The `options` argument can have following values:
     {
         srcData:        required. Buffer with binary image data
         compositeData:  required. Buffer with binary image data
-        gravity:        optional. Can be one of "CenterGravity" "EastGravity" "ForgetGravity" "NorthEastGravity" "NorthGravity" "NorthWestGravity" "SouthEastGravity" "SouthGravity" "SouthWestGravity" "WestGravity"
-        debug:          optional. 1 or 0
-        ignoreWarnings: optional. 1 or 0
+        gravity:        optional. Can be one of 'CenterGravity' 'EastGravity' 'ForgetGravity' 'NorthEastGravity' 'NorthGravity' 'NorthWestGravity' 'SouthEastGravity' 'SouthGravity' 'SouthWestGravity' 'WestGravity'
+        debug:          optional. true or false
+        ignoreWarnings: optional. true or false
     }
 
 An optional `callback` argument can be provided, in which case `composite` will run asynchronously. When it is done, `callback` will be called with the error and the result buffer:
+
 ```
 imagemagick.composite(options, function (err, buffer) {
     // check err, use buffer
@@ -155,7 +187,9 @@ imagemagick.composite(options, function (err, buffer) {
 
 This library currently provide only these, please try [node-imagemagick](https://github.com/rsms/node-imagemagick/) if you want more.
 
-### getConstPixels( options )
+<a name='getConstPixels'></a>
+
+### getConstPixels(options)
 
 Get pixels of provided rectangular region.
 
@@ -186,15 +220,124 @@ Returns:
 
 Where each color value's size is `imagemagick.quantumDepth` bits.
 
-### version
-
-Return ImageMagick's version as string.  
-ex: "6.7.7"
+<a name='quantumDepth'></a>
 
 ### quantumDepth
 
 Return ImageMagick's QuantumDepth, which is defined in compile time.  
 ex: 16
+
+<a name='version'></a>
+
+### version
+
+Return ImageMagick's version as string.  
+ex: '6.7.7'
+
+
+<a name='examples'></a>
+
+## Examples
+
+<a name='example-convert'></a>
+
+### Convert formats
+
+Convert from one format to another with quality control:
+
+```
+fs.writeFileSync('after.png', imagemagick.convert({
+	srcData: fs.readFileSync('before.jpg),
+	quality: 100 // (best) to 1 (worst)
+}));
+```
+
+Original JPEG:
+
+![alt text](http://elad.github.io/node-imagemagick-native/examples/quality.jpg 'Original')
+
+Converted to PNG:
+
+quality 100 | quality 50 | quality 1
+:---: | :---: | :---:
+![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_100.png 'quality 100') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_50.png 'quality 50') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_1.png 'quality 1')
+
+*Image courtesy of [David Yu](https://www.flickr.com/photos/davidyuweb/14175248591).*
+
+<a name='example-blur'></a>
+
+### Blur
+
+Blur image:
+
+```
+fs.writeFileSync('after.jpg', imagemagick.convert({
+	srcData: fs.readFileSync('before.jpg),
+	blur: 5
+}));
+```
+
+![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_before.jpg 'Before blur') becomes ![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_after.jpg 'After blue')
+
+*Image courtesy of [Tambako The Jaguar](https://www.flickr.com/photos/tambako/3574360498).*
+
+<a name='example-resize'></a>
+
+### Resize
+
+Resized images by specifying `width` and `height`. There are three resizing styles:
+
+  * `aspectfill`: Default. The resulting image will be exactly the specified size, and may be cropped.
+  * `aspectfit`: Scales the image so that it will not have to be cropped.
+  * `fill`: Squishes or stretches the image so that it fills exactly the specified size.
+
+```
+fs.writeFileSync('after_resize.jpg', imagemagick.convert({
+	srcData: fs.readFileSync('before_resize.jpg'),
+	width: 100,
+	height: 100,
+	resizeStyle: 'aspectfill' // is the default, or 'aspectfit' or 'fill'
+}));
+```
+
+Original:
+  
+![alt text](http://elad.github.io/node-imagemagick-native/examples/resize.jpg 'Original')
+
+Resized:
+
+aspectfill | aspectfit | fill
+:---: | :---: | :---:
+![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_aspectfill.jpg 'aspectfill') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_aspectfit.jpg 'aspectfit') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_fill.jpg 'fill')
+
+*Image courtesy of [Christoph](https://www.flickr.com/photos/scheinwelten/381994831).*
+
+<a name='example-rotate-flip-mirror'></a>
+
+### Rotate, flip, and mirror
+
+Rotate and flip images, and combine the two to mirror:
+
+```
+fs.writeFileSync('after_rotateflip.jpg', imagemagick.convert({
+	srcData: fs.readFileSync('before_rotateflip.jpg'),
+	rotate: 180,
+	flip: true
+}));
+```
+
+Original:
+
+![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip.jpg 'Original')
+
+Modified:
+
+rotate 90 degrees | rotate 180 degrees | flip | flip + rotate 180 degrees = mirror
+:---: | :---: | :---:
+![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_rotate_90.jpg 'rotate 90') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_rotate_180.jpg 'rotate 180') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_flip.jpg 'flip') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_mirror.jpg 'flip + rotate 180 = mirror')
+
+*Image courtesy of [Bill Gracey](https://www.flickr.com/photos/9422878@N08/6482704235).*
+
 
 ## Installation
 
@@ -267,7 +410,7 @@ See `node test/benchmark.js` for details.
 Copyright (c) Masakazu Ohtsuka <http://maaash.jp/>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
+of this software and associated documentation files (the 'Software'), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
@@ -276,7 +419,7 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
