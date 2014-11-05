@@ -104,18 +104,20 @@ struct composite_im_ctx : im_ctx_base {
 };
 
 #define RETURN_BLOB_OR_ERROR(req) \
-    im_ctx_base* context = static_cast<im_ctx_base*>(req->data); \
-    delete req; \
-    if (!context->error.empty()) { \
-        const char *err_str = context->error.c_str(); \
-        delete context; \
-        return NanThrowError(err_str); \
-    } else { \
-        const Handle<Object> retBuffer = NanNewBufferHandle(context->dstBlob.length()); \
-        memcpy( Buffer::Data(retBuffer), context->dstBlob.data(), context->dstBlob.length() ); \
-        delete context; \
-        NanReturnValue(retBuffer); \
-    }
+    do { \
+        im_ctx_base* _context = static_cast<im_ctx_base*>(req->data); \
+        delete req; \
+        if (!_context->error.empty()) { \
+            const char *_err_str = _context->error.c_str(); \
+            delete _context; \
+            return NanThrowError(_err_str); \
+        } else { \
+            const Handle<Object> _retBuffer = NanNewBufferHandle(_context->dstBlob.length()); \
+            memcpy( Buffer::Data(_retBuffer), _context->dstBlob.data(), _context->dstBlob.length() ); \
+            delete _context; \
+            NanReturnValue(_retBuffer); \
+        } \
+    } while(0);
 
 bool ReadImageMagick(Magick::Image *image, Magick::Blob srcBlob, std::string srcFormat, im_ctx_base *context) {
     if( ! srcFormat.empty() ){
@@ -167,7 +169,8 @@ void DoConvert(uv_work_t* req) {
 
     Magick::Image image;
 
-    if(!ReadImageMagick(&image,srcBlob,context->srcFormat,context)) { return; }
+    if ( !ReadImageMagick(&image, srcBlob, context->srcFormat, context) )
+        return;
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
@@ -830,7 +833,8 @@ void DoComposite(uv_work_t* req) {
 
     Magick::Image image;
 
-    if(!ReadImageMagick(&image,srcBlob,"",context)){ return; }
+    if ( !ReadImageMagick(&image, srcBlob, "", context) )
+        return;
 
     Magick::GravityType gravityType;
 
@@ -855,7 +859,8 @@ void DoComposite(uv_work_t* req) {
 
     Magick::Image compositeImage;
 
-    if(!ReadImageMagick(&compositeImage,compositeBlob,"",context)){ return; }
+    if ( !ReadImageMagick(&compositeImage, compositeBlob, "", context) )
+        return;
 
     image.composite(compositeImage,gravityType,Magick::OverCompositeOp);
 
