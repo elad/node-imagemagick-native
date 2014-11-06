@@ -1,6 +1,6 @@
 # node-imagemagick-native
 
-[Imagemagick](http://www.imagemagick.org/)'s [Magick++](http://www.imagemagick.org/Magick++/) binding for [Node](http://nodejs.org/).
+[ImageMagick](http://www.imagemagick.org/)'s [Magick++](http://www.imagemagick.org/Magick++/) binding for [Node](http://nodejs.org/).
 
 Features
 
@@ -25,10 +25,15 @@ Table of contents
     * [Blur](#example-blur)
     * [Resize](#example-resize)
     * [Rotate, flip, and mirror](#example-rotate-flip-mirror)
+  * [Installation](#installation)
+    * [Linux / Mac OS X](#installation-unix)
+    * [Windows](#installation-windows)
+  * [Performance](#performance)
+  * [License](#license)
 
 <a name='api'></a>
 
-## API
+## API Reference
 
 <a name='convert'></a>
 
@@ -349,10 +354,12 @@ rotate 90 degrees | rotate 180 degrees | flip | flip + rotate 180 degrees = mirr
 
 ## Installation
 
-### Linux / Mac
+<a name='installation-unix'></a>
 
-Install [Imagemagick](http://www.imagemagick.org/) with headers before installing this module.
-Tested with ImageMagick 6.7.7 on CentOS6 and MacOS10.7, Ubuntu12.04 .
+### Linux / Mac OS X
+
+Install [ImageMagick](http://www.imagemagick.org/) with headers before installing this module.
+Tested with ImageMagick 6.7.7 on CentOS 6 and Mac OS X Lion, Ubuntu 12.04 .
 
     brew install imagemagick
 
@@ -385,6 +392,8 @@ Then:
   brew install pkgconfig
   ```
 
+<a name='installation-windows'></a>
+
 ### Windows
 
 Tested on Windows 7 x64.
@@ -403,6 +412,8 @@ Then:
 
     npm install imagemagick-native
 
+<a name='performance'></a>
+
 ## Performance - simple thumbnail creation
 
     imagemagick:       16.09ms per iteration
@@ -412,6 +423,7 @@ See `node test/benchmark.js` for details.
 
 **Note:** `node-imagemagick-native`'s primary advantage is that it uses ImageMagick's API directly rather than by executing one of its command line tools. This means that it will be much faster when the amount of time spent inside the library is small and less so otherwise. See [issue #46](https://github.com/mash/node-imagemagick-native/issues/46) for discussion.
 
+<a name='license'></a>
 
 ## License (MIT)
 
