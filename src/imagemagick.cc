@@ -103,6 +103,50 @@ struct composite_im_ctx : im_ctx_base {
     composite_im_ctx() {}
 };
 
+#define RETURN_BLOB_OR_ERROR(req) \
+    do { \
+        im_ctx_base* _context = static_cast<im_ctx_base*>(req->data); \
+        delete req; \
+        if (!_context->error.empty()) { \
+            const char *_err_str = _context->error.c_str(); \
+            delete _context; \
+            return NanThrowError(_err_str); \
+        } else { \
+            const Handle<Object> _retBuffer = NanNewBufferHandle(_context->dstBlob.length()); \
+            memcpy( Buffer::Data(_retBuffer), _context->dstBlob.data(), _context->dstBlob.length() ); \
+            delete _context; \
+            NanReturnValue(_retBuffer); \
+        } \
+    } while(0);
+
+bool ReadImageMagick(Magick::Image *image, Magick::Blob srcBlob, std::string srcFormat, im_ctx_base *context) {
+    if( ! srcFormat.empty() ){
+        if (context->debug) printf( "reading with format: %s\n", srcFormat.c_str() );
+        image->magick( srcFormat.c_str() );
+    }
+
+    try {
+        image->read( srcBlob );
+    }
+    catch (Magick::Warning& warning) {
+        if (!context->ignoreWarnings) {
+            context->error = warning.what();
+            return false;
+        } else if (context->debug) {
+            printf("warning: %s\n", warning.what());
+        }
+    }
+    catch (std::exception& err) {
+        context->error = err.what();
+        return false;
+    }
+    catch (...) {
+        context->error = std::string("unhandled error");
+        return false;
+    }
+    return true;
+}
+
 void DoConvert(uv_work_t* req) {
 
     convert_im_ctx* context = static_cast<convert_im_ctx*>(req->data);
@@ -125,30 +169,8 @@ void DoConvert(uv_work_t* req) {
 
     Magick::Image image;
 
-    if( ! context->srcFormat.empty() ){
-        if (debug) printf( "srcFormat: %s\n", context->srcFormat.c_str() );
-        image.magick( context->srcFormat.c_str() );
-    }
-
-    try {
-        image.read( srcBlob );
-    }
-    catch (Magick::Warning& warning) {
-        if (!context->ignoreWarnings) {
-            context->error = warning.what();
-            return;
-        } else if (debug) {
-            printf("warning: %s\n", warning.what());
-        }
-    }
-    catch (std::exception& err) {
-        context->error = err.what();
+    if ( !ReadImageMagick(&image, srcBlob, context->srcFormat, context) )
         return;
-    }
-    catch (...) {
-        context->error = std::string("unhandled error");
-        return;
-    }
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
@@ -456,19 +478,7 @@ NAN_METHOD(Convert) {
         NanReturnUndefined();
     } else {
         DoConvert(req);
-        convert_im_ctx* context = static_cast<convert_im_ctx*>(req->data);
-        delete req;
-        if (!context->error.empty()) {
-            const char *err_str = context->error.c_str();
-            delete context;
-            return NanThrowError(err_str);
-        }
-        else {
-            const Handle<Object> retBuffer = NanNewBufferHandle(context->dstBlob.length());
-            memcpy( Buffer::Data(retBuffer), context->dstBlob.data(), context->dstBlob.length() );
-            delete context;
-            NanReturnValue(retBuffer);
-        }
+        RETURN_BLOB_OR_ERROR(req)
     }
 }
 
@@ -822,25 +832,9 @@ void DoComposite(uv_work_t* req) {
     Magick::Blob compositeBlob( context->compositeData, context->compositeLength );
 
     Magick::Image image;
-    try {
-        image.read( srcBlob );
-    }
-    catch (std::exception& err) {
-        std::string what (err.what());
-        std::string message = std::string("image.read failed with error: ") + what;
-        std::size_t found   = what.find( "warn" );
-        if (context->ignoreWarnings && (found != std::string::npos)) {
-            if (context->debug) printf("warning: %s\n", message.c_str());
-        }
-        else {
-            context->error = message;
-            return;
-        }
-    }
-    catch (...) {
-        context->error = std::string("unhandled error");
+
+    if ( !ReadImageMagick(&image, srcBlob, "", context) )
         return;
-    }
 
     Magick::GravityType gravityType;
 
@@ -864,25 +858,9 @@ void DoComposite(uv_work_t* req) {
     if (context->debug) printf( "gravity: %s (%d)\n", gravity,(int) gravityType);
 
     Magick::Image compositeImage;
-    try {
-        compositeImage.read( compositeBlob );
-    }
-    catch (std::exception& err) {
-        std::string what (err.what());
-        std::string message = std::string("compositeImage.read failed with error: ") + what;
-        std::size_t found   = what.find( "warn" );
-        if (context->ignoreWarnings && (found != std::string::npos)) {
-            if (context->debug) printf("warning: %s\n", message.c_str());
-        }
-        else {
-            context->error = message;
-            return;
-        }
-    }
-    catch (...) {
-        context->error = std::string("unhandled error");
+
+    if ( !ReadImageMagick(&compositeImage, compositeBlob, "", context) )
         return;
-    }
 
     image.composite(compositeImage,gravityType,Magick::OverCompositeOp);
 
@@ -953,19 +931,7 @@ NAN_METHOD(Composite) {
         NanReturnUndefined();
     } else {
         DoComposite(req);
-        composite_im_ctx* context = static_cast<composite_im_ctx*>(req->data);
-        delete req;
-        if (!context->error.empty()) {
-            const char *err_str = context->error.c_str();
-            delete context;
-            return NanThrowError(err_str);
-        }
-        else {
-            const Handle<Object> retBuffer = NanNewBufferHandle(context->dstBlob.length());
-            memcpy( Buffer::Data(retBuffer), context->dstBlob.data(), context->dstBlob.length() );
-            delete context;
-            NanReturnValue(retBuffer);
-        }
+        RETURN_BLOB_OR_ERROR(req)
     }
 }
 
