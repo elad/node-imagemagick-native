@@ -12,6 +12,11 @@ Features
 
 Table of contents
 
+  * [Examples](#examples)
+    * [Convert formats](#example-convert) (PNG to JPEG)
+    * [Blur](#example-blur)
+    * [Resize](#example-resize)
+    * [Rotate, flip, and mirror](#example-rotate-flip-mirror)
   * [API Reference](#api)
     * [`convert`](#convert)
     * [`identify`](#identify)
@@ -20,16 +25,114 @@ Table of contents
     * [`getConstPixels`](#getConstPixels)
     * [`quantumDepth`](#quantumDepth)
     * [`version`](#version)
-  * [Examples](#examples)
-    * [Convert formats](#example-convert) (PNG to JPEG)
-    * [Blur](#example-blur)
-    * [Resize](#example-resize)
-    * [Rotate, flip, and mirror](#example-rotate-flip-mirror)
   * [Installation](#installation)
     * [Linux / Mac OS X](#installation-unix)
     * [Windows](#installation-windows)
   * [Performance](#performance)
   * [License](#license)
+
+<a name='examples'></a>
+
+## Examples
+
+<a name='example-convert'></a>
+
+### Convert formats
+
+Convert from one format to another with quality control:
+
+```js
+fs.writeFileSync('after.png', imagemagick.convert({
+	srcData: fs.readFileSync('before.jpg'),
+	quality: 100 // (best) to 1 (worst)
+}));
+```
+
+Original JPEG:
+
+![alt text](http://elad.github.io/node-imagemagick-native/examples/quality.jpg 'Original')
+
+Converted to PNG:
+
+quality 100 | quality 50 | quality 1
+:---: | :---: | :---:
+![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_100.png 'quality 100') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_50.png 'quality 50') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_1.png 'quality 1')
+
+*Image courtesy of [David Yu](https://www.flickr.com/photos/davidyuweb/14175248591).*
+
+<a name='example-blur'></a>
+
+### Blur
+
+Blur image:
+
+```js
+fs.writeFileSync('after.jpg', imagemagick.convert({
+	srcData: fs.readFileSync('before.jpg'),
+	blur: 5
+}));
+```
+
+![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_before.jpg 'Before blur') becomes ![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_after.jpg 'After blue')
+
+*Image courtesy of [Tambako The Jaguar](https://www.flickr.com/photos/tambako/3574360498).*
+
+<a name='example-resize'></a>
+
+### Resize
+
+Resized images by specifying `width` and `height`. There are three resizing styles:
+
+  * `aspectfill`: Default. The resulting image will be exactly the specified size, and may be cropped.
+  * `aspectfit`: Scales the image so that it will not have to be cropped.
+  * `fill`: Squishes or stretches the image so that it fills exactly the specified size.
+
+```js
+fs.writeFileSync('after_resize.jpg', imagemagick.convert({
+	srcData: fs.readFileSync('before_resize.jpg'),
+	width: 100,
+	height: 100,
+	resizeStyle: 'aspectfill' // is the default, or 'aspectfit' or 'fill'
+}));
+```
+
+Original:
+  
+![alt text](http://elad.github.io/node-imagemagick-native/examples/resize.jpg 'Original')
+
+Resized:
+
+aspectfill | aspectfit | fill
+:---: | :---: | :---:
+![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_aspectfill.jpg 'aspectfill') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_aspectfit.jpg 'aspectfit') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_fill.jpg 'fill')
+
+*Image courtesy of [Christoph](https://www.flickr.com/photos/scheinwelten/381994831).*
+
+<a name='example-rotate-flip-mirror'></a>
+
+### Rotate, flip, and mirror
+
+Rotate and flip images, and combine the two to mirror:
+
+```js
+fs.writeFileSync('after_rotateflip.jpg', imagemagick.convert({
+	srcData: fs.readFileSync('before_rotateflip.jpg'),
+	rotate: 180,
+	flip: true
+}));
+```
+
+Original:
+
+![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip.jpg 'Original')
+
+Modified:
+
+rotate 90 degrees | rotate 180 degrees | flip | flip + rotate 180 degrees = mirror
+:---: | :---: | :---: | :---:
+![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_rotate_90.jpg 'rotate 90') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_rotate_180.jpg 'rotate 180') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_flip.jpg 'flip') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_mirror.jpg 'flip + rotate 180 = mirror')
+
+*Image courtesy of [Bill Gracey](https://www.flickr.com/photos/9422878@N08/6482704235).*
 
 <a name='api'></a>
 
@@ -247,110 +350,7 @@ ex: 16
 Return ImageMagick's version as string.  
 ex: '6.7.7'
 
-
-<a name='examples'></a>
-
-## Examples
-
-<a name='example-convert'></a>
-
-### Convert formats
-
-Convert from one format to another with quality control:
-
-```js
-fs.writeFileSync('after.png', imagemagick.convert({
-	srcData: fs.readFileSync('before.jpg'),
-	quality: 100 // (best) to 1 (worst)
-}));
-```
-
-Original JPEG:
-
-![alt text](http://elad.github.io/node-imagemagick-native/examples/quality.jpg 'Original')
-
-Converted to PNG:
-
-quality 100 | quality 50 | quality 1
-:---: | :---: | :---:
-![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_100.png 'quality 100') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_50.png 'quality 50') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_1.png 'quality 1')
-
-*Image courtesy of [David Yu](https://www.flickr.com/photos/davidyuweb/14175248591).*
-
-<a name='example-blur'></a>
-
-### Blur
-
-Blur image:
-
-```js
-fs.writeFileSync('after.jpg', imagemagick.convert({
-	srcData: fs.readFileSync('before.jpg'),
-	blur: 5
-}));
-```
-
-![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_before.jpg 'Before blur') becomes ![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_after.jpg 'After blue')
-
-*Image courtesy of [Tambako The Jaguar](https://www.flickr.com/photos/tambako/3574360498).*
-
-<a name='example-resize'></a>
-
-### Resize
-
-Resized images by specifying `width` and `height`. There are three resizing styles:
-
-  * `aspectfill`: Default. The resulting image will be exactly the specified size, and may be cropped.
-  * `aspectfit`: Scales the image so that it will not have to be cropped.
-  * `fill`: Squishes or stretches the image so that it fills exactly the specified size.
-
-```js
-fs.writeFileSync('after_resize.jpg', imagemagick.convert({
-	srcData: fs.readFileSync('before_resize.jpg'),
-	width: 100,
-	height: 100,
-	resizeStyle: 'aspectfill' // is the default, or 'aspectfit' or 'fill'
-}));
-```
-
-Original:
-  
-![alt text](http://elad.github.io/node-imagemagick-native/examples/resize.jpg 'Original')
-
-Resized:
-
-aspectfill | aspectfit | fill
-:---: | :---: | :---:
-![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_aspectfill.jpg 'aspectfill') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_aspectfit.jpg 'aspectfit') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_fill.jpg 'fill')
-
-*Image courtesy of [Christoph](https://www.flickr.com/photos/scheinwelten/381994831).*
-
-<a name='example-rotate-flip-mirror'></a>
-
-### Rotate, flip, and mirror
-
-Rotate and flip images, and combine the two to mirror:
-
-```js
-fs.writeFileSync('after_rotateflip.jpg', imagemagick.convert({
-	srcData: fs.readFileSync('before_rotateflip.jpg'),
-	rotate: 180,
-	flip: true
-}));
-```
-
-Original:
-
-![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip.jpg 'Original')
-
-Modified:
-
-rotate 90 degrees | rotate 180 degrees | flip | flip + rotate 180 degrees = mirror
-:---: | :---: | :---: | :---:
-![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_rotate_90.jpg 'rotate 90') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_rotate_180.jpg 'rotate 180') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_flip.jpg 'flip') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_mirror.jpg 'flip + rotate 180 = mirror')
-
-*Image courtesy of [Bill Gracey](https://www.flickr.com/photos/9422878@N08/6482704235).*
-
+<a name='installation'></a>
 
 ## Installation
 
