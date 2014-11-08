@@ -44,6 +44,7 @@ Convert from one format to another with quality control:
 ```js
 fs.writeFileSync('after.png', imagemagick.convert({
 	srcData: fs.readFileSync('before.jpg'),
+	format: 'PNG',
 	quality: 100 // (best) to 1 (worst)
 }));
 ```
