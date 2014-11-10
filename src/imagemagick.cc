@@ -335,6 +335,7 @@ void DoConvert(uv_work_t* req) {
     }
     catch (...) {
         context->error = std::string("unhandled error");
+        return;
     }
     context->dstBlob = dstBlob;
 }
