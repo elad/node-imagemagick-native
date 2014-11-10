@@ -324,8 +324,18 @@ void DoConvert(uv_work_t* req) {
     }
 
     Magick::Blob dstBlob;
-    image.write( &dstBlob );
-
+    try {
+        image.write( &dstBlob );
+    }
+    catch (std::exception& err) {
+        std::string message = "image.write failed with error: ";
+        message            += err.what();
+        context->error = message;
+        return;
+    }
+    catch (...) {
+        context->error = std::string("unhandled error");
+    }
     context->dstBlob = dstBlob;
 }
 

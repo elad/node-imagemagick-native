@@ -13,6 +13,24 @@ function saveToFileIfDebug (buffer, file) {
     }
 }
 
+test( 'convert invalid format', function (t) {
+    var buffer;
+    try {
+        buffer = imagemagick.convert({
+            srcData: require('fs').readFileSync( "test.png" ), // 58x66
+            width: 100,
+            height: 100,
+            quality: 80,
+            format: 'PNGX',
+            debug: debug
+        });
+    } catch (e) {
+        t.like( e.message, /no decode delegate for this image format/, 'err message' );
+    }
+    t.equal( buffer, undefined, 'buffer undefined' );
+    t.end();
+});
+
 test( 'convert invalid number of arguments', function (t) {
     var error = 0;
     try {
