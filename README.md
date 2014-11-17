@@ -155,10 +155,13 @@ The `options` argument can have following values:
         height:         optional. px.
         density         optional. Integer dpi value to convert
         resizeStyle:    optional. default: 'aspectfill'. can be 'aspectfit', 'fill'
-                        aspectfill: keep aspect ratio, get the exact provided size,
-                                    crop top/bottom or left/right if necessary
+                        aspectfill: keep aspect ratio, get the exact provided size.
                         aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
                         fill:       forget aspect ratio, get the exact provided size
+        cropMode:       optional. default: 'middle-center'.
+                            only when resizeStyle is 'aspectfill'
+                        (top|middle|bottom)-(left|center|right): crop extra part
+                        none: not crop
         format:         optional. output format, ex: 'JPEG'. see below for candidates
         filter:         optional. resize filter. ex: 'Lagrange', 'Lanczos'.  see below for candidates
         blur:           optional. ex: 0.8

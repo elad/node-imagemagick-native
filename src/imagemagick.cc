@@ -81,6 +81,7 @@ struct convert_im_ctx : im_ctx_base {
     unsigned int height;
     bool strip;
     std::string resizeStyle;
+    std::string cropMode;
     std::string format;
     std::string filter;
     std::string blur;
@@ -188,6 +189,9 @@ void DoConvert(uv_work_t* req) {
     const char* resizeStyle = context->resizeStyle.c_str();
     if (debug) printf( "resizeStyle: %s\n", resizeStyle );
 
+    const char* cropMode = context->cropMode.c_str();
+    if (debug) printf( "cropMode: %s\n", cropMode );
+
     if( ! context->format.empty() ){
         if (debug) printf( "format: %s\n", context->format.c_str() );
         image.magick( context->format.c_str() );
@@ -231,11 +235,20 @@ void DoConvert(uv_work_t* req) {
             unsigned int yoffset = 0;
             unsigned int resizewidth;
             unsigned int resizeheight;
+
             if ( aspectratioExpected > aspectratioOriginal ) {
                 // expected is taller
                 resizewidth  = (unsigned int)( (double)height / (double)image.rows() * (double)image.columns() + 1. );
                 resizeheight = height;
-                xoffset      = (unsigned int)( (resizewidth - width) / 2. );
+                if ( strstr(cropMode, "left") != NULL ) {
+                    xoffset = 0;
+                }
+                else if ( strstr(cropMode, "right") != NULL ) {
+                    xoffset = (unsigned int)( resizewidth - width );
+                }
+                else {
+                    xoffset = (unsigned int)( (resizewidth - width) / 2. );
+                }
                 yoffset      = 0;
             }
             else {
@@ -243,7 +256,15 @@ void DoConvert(uv_work_t* req) {
                 resizewidth  = width;
                 resizeheight = (unsigned int)( (double)width / (double)image.columns() * (double)image.rows() + 1. );
                 xoffset      = 0;
-                yoffset      = (unsigned int)( (resizeheight - height) / 2. );
+                if ( strstr(cropMode, "top") != NULL ) {
+                    yoffset = 0;
+                }
+                else if ( strstr(cropMode, "bottom") != NULL ) {
+                    yoffset = (unsigned int)( resizeheight - height );
+                }
+                else {
+                    yoffset = (unsigned int)( (resizeheight - height) / 2. );
+                }
             }
 
             if (debug) printf( "resize to: %d, %d\n", resizewidth, resizeheight );
@@ -262,22 +283,25 @@ void DoConvert(uv_work_t* req) {
                 return;
             }
 
-            // limit canvas size to cropGeometry
-            if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
-            Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
+            if ( strcmp ( cropMode, "none" ) != 0 ) {
+                // limit canvas size to cropGeometry
+                if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
+                Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
 
-            Magick::Color transparent( "transparent" );
-            if ( strcmp( context->format.c_str(), "PNG" ) == 0 ) {
-                // make background transparent for PNG
-                // JPEG background becomes black if set transparent here
-                transparent.alpha( 1. );
+                Magick::Color transparent( "transparent" );
+                if ( strcmp( context->format.c_str(), "PNG" ) == 0 ) {
+                    // make background transparent for PNG
+                    // JPEG background becomes black if set transparent here
+                    transparent.alpha( 1. );
+                }
+
+                #if MagickLibVersion > 0x654
+                    image.extent( cropGeometry, transparent );
+                #else
+                    image.extent( cropGeometry );
+                #endif
             }
 
-            #if MagickLibVersion > 0x654
-                image.extent( cropGeometry, transparent );
-            #else
-                image.extent( cropGeometry );
-            #endif
         }
         else if ( strcmp ( resizeStyle, "aspectfit" ) == 0 ) {
             // keep aspect ratio, get the maximum image which fits inside specified size
@@ -402,6 +426,7 @@ void GeneratedBlobAfter(uv_work_t* req) {
 //                  width:       optional. px.
 //                  height:      optional. px.
 //                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
+//                  cropMode:    optional. default: "middle-center". can be "(top|middle|bottom)-(left|center|right)"
 //                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
 //                  filter:      optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
 //                  blur:        optional. ex: 0.8
@@ -466,6 +491,10 @@ NAN_METHOD(Convert) {
     Local<Value> resizeStyleValue = obj->Get( NanNew<String>("resizeStyle") );
     context->resizeStyle = !resizeStyleValue->IsUndefined() ?
         NanCString(resizeStyleValue, &count) : "aspectfill";
+
+    Local<Value> cropModeValue = obj->Get( NanNew<String>("cropMode") );
+    context->cropMode = !cropModeValue->IsUndefined() ?
+        NanCString(cropModeValue, &count) : "middle-center";
 
     Local<Value> formatValue = obj->Get( NanNew<String>("format") );
     context->format = !formatValue->IsUndefined() ?
