@@ -81,7 +81,7 @@ struct convert_im_ctx : im_ctx_base {
     unsigned int height;
     bool strip;
     std::string resizeStyle;
-    std::string cropMode;
+    std::string gravity;
     std::string format;
     std::string filter;
     std::string blur;
@@ -189,8 +189,22 @@ void DoConvert(uv_work_t* req) {
     const char* resizeStyle = context->resizeStyle.c_str();
     if (debug) printf( "resizeStyle: %s\n", resizeStyle );
 
-    const char* cropMode = context->cropMode.c_str();
-    if (debug) printf( "cropMode: %s\n", cropMode );
+    const char* gravity = context->gravity.c_str();
+    if ( strcmp("Center", gravity)!=0
+      && strcmp("East", gravity)!=0
+      && strcmp("West", gravity)!=0
+      && strcmp("North", gravity)!=0
+      && strcmp("South", gravity)!=0
+      && strcmp("NorthEast", gravity)!=0
+      && strcmp("NorthWest", gravity)!=0
+      && strcmp("SouthEast", gravity)!=0
+      && strcmp("SouthWest", gravity)!=0
+      && strcmp("None", gravity)!=0
+    ) {
+        context->error = std::string("gravity not supported");
+        return;
+    }
+    if (debug) printf( "gravity: %s\n", gravity );
 
     if( ! context->format.empty() ){
         if (debug) printf( "format: %s\n", context->format.c_str() );
@@ -240,26 +254,26 @@ void DoConvert(uv_work_t* req) {
                 // expected is taller
                 resizewidth  = (unsigned int)( (double)height / (double)image.rows() * (double)image.columns() + 1. );
                 resizeheight = height;
-                if ( strstr(cropMode, "left") != NULL ) {
+                if ( strstr(gravity, "West") != NULL ) {
                     xoffset = 0;
                 }
-                else if ( strstr(cropMode, "right") != NULL ) {
+                else if ( strstr(gravity, "East") != NULL ) {
                     xoffset = (unsigned int)( resizewidth - width );
                 }
                 else {
                     xoffset = (unsigned int)( (resizewidth - width) / 2. );
                 }
-                yoffset      = 0;
+                yoffset = 0;
             }
             else {
                 // expected is wider
                 resizewidth  = width;
                 resizeheight = (unsigned int)( (double)width / (double)image.columns() * (double)image.rows() + 1. );
-                xoffset      = 0;
-                if ( strstr(cropMode, "top") != NULL ) {
+                xoffset = 0;
+                if ( strstr(gravity, "North") != NULL ) {
                     yoffset = 0;
                 }
-                else if ( strstr(cropMode, "bottom") != NULL ) {
+                else if ( strstr(gravity, "South") != NULL ) {
                     yoffset = (unsigned int)( resizeheight - height );
                 }
                 else {
@@ -283,7 +297,7 @@ void DoConvert(uv_work_t* req) {
                 return;
             }
 
-            if ( strcmp ( cropMode, "none" ) != 0 ) {
+            if ( strcmp ( gravity, "None" ) != 0 ) {
                 // limit canvas size to cropGeometry
                 if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
                 Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
@@ -426,7 +440,9 @@ void GeneratedBlobAfter(uv_work_t* req) {
 //                  width:       optional. px.
 //                  height:      optional. px.
 //                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
-//                  cropMode:    optional. default: "middle-center". can be "(top|middle|bottom)-(left|center|right)"
+//                  gravity:     optional. default: "Center". used when resizeStyle is "aspectfill"
+//                                         can be "NorthWest", "North", "NorthEast", "West",
+//                                         "Center", "East", "SouthWest", "South", "SouthEast", "None"
 //                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
 //                  filter:      optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
 //                  blur:        optional. ex: 0.8
@@ -492,9 +508,9 @@ NAN_METHOD(Convert) {
     context->resizeStyle = !resizeStyleValue->IsUndefined() ?
         NanCString(resizeStyleValue, &count) : "aspectfill";
 
-    Local<Value> cropModeValue = obj->Get( NanNew<String>("cropMode") );
-    context->cropMode = !cropModeValue->IsUndefined() ?
-        NanCString(cropModeValue, &count) : "middle-center";
+    Local<Value> gravityValue = obj->Get( NanNew<String>("gravity") );
+    context->gravity = !gravityValue->IsUndefined() ?
+        NanCString(gravityValue, &count) : "Center";
 
     Local<Value> formatValue = obj->Get( NanNew<String>("format") );
     context->format = !formatValue->IsUndefined() ?
