@@ -93,7 +93,8 @@ fs.writeFileSync('after_resize.jpg', imagemagick.convert({
 	srcData: fs.readFileSync('before_resize.jpg'),
 	width: 100,
 	height: 100,
-	resizeStyle: 'aspectfill' // is the default, or 'aspectfit' or 'fill'
+	resizeStyle: 'aspectfill', // is the default, or 'aspectfit' or 'fill'
+	gravity: 'Center' // optional: position crop area when using 'aspectfill'
 }));
 ```
 
@@ -158,7 +159,7 @@ The `options` argument can have following values:
                         aspectfill: keep aspect ratio, get the exact provided size.
                         aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
                         fill:       forget aspect ratio, get the exact provided size
-        gravity:        optional. default: 'Center'. used when resizeStyle is 'aspectfill'
+        gravity:        optional. default: 'Center'. used to position the crop area when resizeStyle is 'aspectfill'
                                   can be 'NorthWest', 'North', 'NorthEast', 'West',
                                   'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None'
         format:         optional. output format, ex: 'JPEG'. see below for candidates
