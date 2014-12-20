@@ -80,6 +80,8 @@ struct convert_im_ctx : im_ctx_base {
     unsigned int width;
     unsigned int height;
     bool strip;
+    bool trim;
+    double trimFuzz;
     std::string resizeStyle;
     std::string gravity;
     std::string format;
@@ -184,6 +186,22 @@ void DoConvert(uv_work_t* req) {
     if ( context->strip ) {
         if (debug) printf( "strip: true\n" );
         image.strip();
+    }
+
+    if ( context->trim ) {
+        if (debug) printf( "trim: true\n" );
+        double trimFuzz = context->trimFuzz;
+        if ( trimFuzz != trimFuzz ) {
+            image.trim();
+        } else {
+            if (debug) printf( "fuzz: %lf\n", trimFuzz );
+            double fuzz = image.colorFuzz();
+            image.colorFuzz(trimFuzz);
+            image.trim();
+            image.colorFuzz(fuzz);
+            if (debug) printf( "restored fuzz: %lf\n", fuzz );
+        }
+        if (debug) printf( "trimmed width,height: %d, %d\n", (int) image.columns(), (int) image.rows() );
     }
 
     const char* resizeStyle = context->resizeStyle.c_str();
@@ -437,6 +455,8 @@ void GeneratedBlobAfter(uv_work_t* req) {
 //              {
 //                  srcData:     required. Buffer with binary image data
 //                  quality:     optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
+//                  trim:        optional. default: false. trims edges that are the background color.
+//                  trimFuzz:    optional. [0-1) float, default 0. trimmed color distance to edge color, 0 is exact.
 //                  width:       optional. px.
 //                  height:      optional. px.
 //                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
@@ -487,6 +507,11 @@ NAN_METHOD(Convert) {
     context->rotate = obj->Get( NanNew<String>("rotate") )->Int32Value();
     context->flip = obj->Get( NanNew<String>("flip") )->Uint32Value();
     context->density = obj->Get( NanNew<String>("density") )->Int32Value();
+
+    Local<Value> trimValue = obj->Get( NanNew<String>("trim") );
+    if ( (context->trim = ! trimValue->IsUndefined() && trimValue->BooleanValue()) ) {
+        context->trimFuzz = obj->Get( NanNew<String>("trimFuzz") )->NumberValue() * (double) (1L << MAGICKCORE_QUANTUM_DEPTH);
+    }
 
     Local<Value> stripValue = obj->Get( NanNew<String>("strip") );
     context->strip = ! stripValue->IsUndefined() && stripValue->BooleanValue();
