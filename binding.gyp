@@ -79,7 +79,7 @@
             '<!@(Magick++-config --cflags --cppflags)'
           ],
         }],
-        ['OS=="linux"', { # not windows not mac
+        ['OS=="linux" or OS=="solaris"', { # not windows not mac
           "libraries": [
             '<!@(Magick++-config --ldflags --libs)',
           ],
