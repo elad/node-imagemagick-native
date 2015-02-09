@@ -257,7 +257,7 @@ void DoConvert(uv_work_t* req) {
         if ( strcmp( resizeStyle, "aspectfill" ) == 0 ) {
             // ^ : Fill Area Flag ('^' flag)
             // is not implemented in Magick++
-            // and gravity: center, extent doesnt look like working as exptected
+            // and gravity: center, extent doesn't look like working as expected
             // so we do it ourselves
 
             // keep aspect ratio, get the exact provided size, crop top/bottom or left/right if necessary
