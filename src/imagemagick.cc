@@ -91,6 +91,7 @@ struct convert_im_ctx : im_ctx_base {
     int rotate;
     int density;
     int flip;
+    bool upscale;
 
     std::string srcFormat;
 
@@ -262,6 +263,18 @@ void DoConvert(uv_work_t* req) {
 
             // keep aspect ratio, get the exact provided size, crop top/bottom or left/right if necessary
             double aspectratioExpected = (double)height / (double)width;
+
+            if ( ! context->upscale ) {
+                if(width > image.columns()) {
+                    width = image.columns();
+                    height = (unsigned int)( aspectratioExpected * width);
+                }
+                if(height > image.rows()) {
+                    height = image.rows();
+                    width = (unsigned int)( aspectratioExpected / height);
+                }
+            }
+
             double aspectratioOriginal = (double)image.rows() / (double)image.columns();
             unsigned int xoffset = 0;
             unsigned int yoffset = 0;
@@ -272,6 +285,7 @@ void DoConvert(uv_work_t* req) {
                 // expected is taller
                 resizewidth  = (unsigned int)( (double)height / (double)image.rows() * (double)image.columns() + 1. );
                 resizeheight = height;
+
                 if ( strstr(gravity, "West") != NULL ) {
                     xoffset = 0;
                 }
@@ -507,6 +521,9 @@ NAN_METHOD(Convert) {
     context->rotate = obj->Get( NanNew<String>("rotate") )->Int32Value();
     context->flip = obj->Get( NanNew<String>("flip") )->Uint32Value();
     context->density = obj->Get( NanNew<String>("density") )->Int32Value();
+
+    Local<Value> upscaleValue = obj->Get( NanNew<String>("upscale") );
+    context->upscale = upscaleValue->IsUndefined() || upscaleValue->BooleanValue();
 
     Local<Value> trimValue = obj->Get( NanNew<String>("trim") );
     if ( (context->trim = ! trimValue->IsUndefined() && trimValue->BooleanValue()) ) {
