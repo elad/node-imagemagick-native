@@ -254,6 +254,19 @@ void DoConvert(uv_work_t* req) {
         if ( ! width  ) { width  = image.columns(); }
         if ( ! height ) { height = image.rows();    }
 
+        double aspectratioExpected = (double)height / (double)width;
+
+        if ( ! context->upscale ) {
+            if(width > image.columns()) {
+                width = image.columns();
+                height = (unsigned int)( aspectratioExpected * width);
+            }
+            if(height > image.rows()) {
+                height = image.rows();
+                width = (unsigned int)( aspectratioExpected / height);
+            }
+        }
+
         // do resize
         if ( strcmp( resizeStyle, "aspectfill" ) == 0 ) {
             // ^ : Fill Area Flag ('^' flag)
@@ -262,18 +275,6 @@ void DoConvert(uv_work_t* req) {
             // so we do it ourselves
 
             // keep aspect ratio, get the exact provided size, crop top/bottom or left/right if necessary
-            double aspectratioExpected = (double)height / (double)width;
-
-            if ( ! context->upscale ) {
-                if(width > image.columns()) {
-                    width = image.columns();
-                    height = (unsigned int)( aspectratioExpected * width);
-                }
-                if(height > image.rows()) {
-                    height = image.rows();
-                    width = (unsigned int)( aspectratioExpected / height);
-                }
-            }
 
             double aspectratioOriginal = (double)image.rows() / (double)image.columns();
             unsigned int xoffset = 0;

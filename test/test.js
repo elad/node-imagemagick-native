@@ -256,7 +256,7 @@ test( 'convert aspectfit with upscale false', function (t) {
     });
     t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
     var info = imagemagick.identify({srcData: buffer });
-    t.equal( info.width, 58 );
+    t.equal( info.width, 25 );
     t.equal( info.height, 29 );
     saveToFileIfDebug( buffer, "out.aspectfit-no-upscale.jpg" );
     t.end();
