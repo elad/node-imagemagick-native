@@ -74,7 +74,7 @@ fs.writeFileSync('after.jpg', imagemagick.convert({
 }));
 ```
 
-![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_before.jpg 'Before blur') becomes ![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_after.jpg 'After blue')
+![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_before.jpg 'Before blur') becomes ![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_after.jpg 'After blur')
 
 *Image courtesy of [Tambako The Jaguar](https://www.flickr.com/photos/tambako/3574360498).*
 
