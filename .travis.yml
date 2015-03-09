@@ -1,8 +1,11 @@
 language: node_js
 node_js:
+  - "iojs"
+  - "0.12"
   - "0.11"
   - "0.10"
   - "0.8"
 before_install:
  - sudo apt-get update -qq
  - sudo apt-get install -qq libmagick++-dev
+ - npm update -g npm
