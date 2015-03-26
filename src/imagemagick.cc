@@ -77,6 +77,8 @@ struct identify_im_ctx : im_ctx_base {
 struct convert_im_ctx : im_ctx_base {
     unsigned int maxMemory;
 
+    unsigned int xoffset;
+    unsigned int yoffset;
     unsigned int width;
     unsigned int height;
     bool strip;
@@ -263,7 +265,7 @@ void DoConvert(uv_work_t* req) {
             // keep aspect ratio, get the exact provided size, crop top/bottom or left/right if necessary
             double aspectratioExpected = (double)height / (double)width;
             double aspectratioOriginal = (double)image.rows() / (double)image.columns();
-            unsigned int xoffset = 0;
+            unsigned int xoffset = 0
             unsigned int yoffset = 0;
             unsigned int resizewidth;
             unsigned int resizeheight;
@@ -374,6 +376,31 @@ void DoConvert(uv_work_t* req) {
                 context->error = std::string("unhandled error");
                 return;
             }
+        }
+        else if ( strcmp ( resizeStyle, "crop" ) == 0 ) {
+            unsigned int xoffset = context->xoffset;
+            unsigned int yoffset = context->yoffset;
+
+            if ( ! xoffset ) { xoffset = 0; }
+            if ( ! yoffset ) { ypffset = 0; }
+
+            // limit canvas size to cropGeometry
+            if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
+            Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
+
+            Magick::Color transparent( "transparent" );
+            if ( strcmp( context->format.c_str(), "PNG" ) == 0 ) {
+                // make background transparent for PNG
+                // JPEG background becomes black if set transparent here
+                transparent.alpha( 1. );
+            }
+
+            #if MagickLibVersion > 0x654
+                image.extent( cropGeometry, transparent );
+            #else
+                image.extent( cropGeometry );
+            #endif
+
         }
         else {
             context->error = std::string("resizeStyle not supported");
