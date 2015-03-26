@@ -486,7 +486,9 @@ void GeneratedBlobAfter(uv_work_t* req) {
 //                  trimFuzz:    optional. [0-1) float, default 0. trimmed color distance to edge color, 0 is exact.
 //                  width:       optional. px.
 //                  height:      optional. px.
-//                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
+//                  xoffset:     optional. px.
+//                  yoffset:     optional. px.
+//                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill", "crop"
 //                  gravity:     optional. default: "Center". used when resizeStyle is "aspectfill"
 //                                         can be "NorthWest", "North", "NorthEast", "West",
 //                                         "Center", "East", "SouthWest", "South", "SouthEast", "None"
