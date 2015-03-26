@@ -382,7 +382,7 @@ void DoConvert(uv_work_t* req) {
             unsigned int yoffset = context->yoffset;
 
             if ( ! xoffset ) { xoffset = 0; }
-            if ( ! yoffset ) { ypffset = 0; }
+            if ( ! yoffset ) { yoffset = 0; }
 
             // limit canvas size to cropGeometry
             if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
