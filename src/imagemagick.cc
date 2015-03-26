@@ -528,6 +528,8 @@ NAN_METHOD(Convert) {
     context->debug = obj->Get( NanNew<String>("debug") )->Uint32Value();
     context->ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
     context->maxMemory = obj->Get( NanNew<String>("maxMemory") )->Uint32Value();
+    context->xoffset = obj->Get( NanNew<String>("xoffset") )->Uint32Value();
+    context->yoffset = obj->Get( NanNew<String>("yoffset") )->Uint32Value();
     context->width = obj->Get( NanNew<String>("width") )->Uint32Value();
     context->height = obj->Get( NanNew<String>("height") )->Uint32Value();
     context->quality = obj->Get( NanNew<String>("quality") )->Uint32Value();
