@@ -265,7 +265,7 @@ void DoConvert(uv_work_t* req) {
             // keep aspect ratio, get the exact provided size, crop top/bottom or left/right if necessary
             double aspectratioExpected = (double)height / (double)width;
             double aspectratioOriginal = (double)image.rows() / (double)image.columns();
-            unsigned int xoffset = 0
+            unsigned int xoffset = 0;
             unsigned int yoffset = 0;
             unsigned int resizewidth;
             unsigned int resizeheight;
