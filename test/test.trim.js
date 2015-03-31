@@ -95,3 +95,18 @@ test( 'trim half color fuzz resize', function (t) {
     t.end();
 });
 
+test( 'crop', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "test.trim.jpg" ), // 87x106
+        format: 'PNG',
+        crop: '50x50+10+10',
+        debug: debug
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    var info = imagemagick.identify({srcData: buffer });
+    t.equal( info.width, 50 );
+    t.equal( info.height, 50 );
+    saveToFileIfDebug( buffer, "out.trim-half-resize.png" );
+    t.end();
+});
+
