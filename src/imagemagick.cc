@@ -52,11 +52,6 @@ private:
     bool diskLimited;
 };
 
-std::map<std::string, MagickCore::ColorspaceType> colorspaceMap {
-  { "CMYK", MagickCore::ColorspaceType::CMYKColorspace},
-  { "RGB", MagickCore::ColorspaceType::RGBColorspace}
-};
-
 // Base context for calls shared on sync and async code paths
 struct im_ctx_base {
     NanCallback * callback;
@@ -615,13 +610,9 @@ void BuildIdentifyResult(uv_work_t *req, Handle<Value> *argv) {
         out->Set(NanNew<String>("height"), NanNew<Integer>(static_cast<int>(context->image.rows())));
         out->Set(NanNew<String>("depth"), NanNew<Integer>(static_cast<int>(context->image.depth())));
         out->Set(NanNew<String>("format"), NanNew<String>(context->image.magick().c_str()));
-        std::map<std::string, MagickCore::ColorspaceType>::iterator csit;
-        for( csit = colorspaceMap.begin(); csit != colorspaceMap.end(); ++csit ){
-           if( context->image.colorSpace() == csit->second ){
-             out->Set(NanNew<String>("colorspace"), NanNew<String>(csit->first));
-             break;
-           }
-        }
+        out->Set(NanNew<String>("colorspace"), NanNew<String>(
+            MagickCore::CommandOptionToMnemonic(MagickCore::MagickColorspaceOptions, static_cast<ssize_t>(context->image.colorSpace()))
+        ));
 
         Handle<Object> out_density = NanNew<Object>();
         Magick::Geometry density = context->image.density();
