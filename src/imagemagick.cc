@@ -683,6 +683,7 @@ void BuildIdentifyResult(uv_work_t *req, Local<Value> *argv) {
         out->Set(Nan::New<String>("height").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.rows())));
         out->Set(Nan::New<String>("depth").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.depth())));
         out->Set(Nan::New<String>("format").ToLocalChecked(), Nan::New<String>(context->image.magick().c_str()).ToLocalChecked());
+        out->Set(Nan::New<String>("colorspace").ToLocalChecked(), Nan::New<String>(MagickCore::CommandOptionToMnemonic(MagickCore::MagickColorspaceOptions, static_cast<ssize_t>(context->image.colorSpace()))).ToLocalChecked());
 
         Local<Object> out_density = Nan::New<Object>();
         Magick::Geometry density = context->image.density();
