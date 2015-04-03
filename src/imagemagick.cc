@@ -610,9 +610,7 @@ void BuildIdentifyResult(uv_work_t *req, Handle<Value> *argv) {
         out->Set(NanNew<String>("height"), NanNew<Integer>(static_cast<int>(context->image.rows())));
         out->Set(NanNew<String>("depth"), NanNew<Integer>(static_cast<int>(context->image.depth())));
         out->Set(NanNew<String>("format"), NanNew<String>(context->image.magick().c_str()));
-        out->Set(NanNew<String>("colorspace"), NanNew<String>(
-            MagickCore::CommandOptionToMnemonic(MagickCore::MagickColorspaceOptions, static_cast<ssize_t>(context->image.colorSpace()))
-        ));
+        out->Set(NanNew<String>("colorspace"), NanNew<String>(MagickCore::CommandOptionToMnemonic(MagickCore::MagickColorspaceOptions, static_cast<ssize_t>(context->image.colorSpace()))));
 
         Handle<Object> out_density = NanNew<Object>();
         Magick::Geometry density = context->image.density();
