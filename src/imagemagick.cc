@@ -87,6 +87,7 @@ struct convert_im_ctx : im_ctx_base {
     std::string format;
     std::string filter;
     std::string blur;
+	std::string background;
     unsigned int quality;
     int rotate;
     int density;
@@ -171,6 +172,25 @@ void DoConvert(uv_work_t* req) {
     Magick::Blob srcBlob( context->srcData, context->length );
 
     Magick::Image image;
+
+    if ( ! context->background.empty() ) {
+        const char* background = context->background.c_str();
+        try {
+            Magick::Color bg(background);
+            image.backgroundColor(bg);
+            if (debug) printf( "set background: %s\n", background );
+        }
+        catch (std::exception& err) {
+            std::string message = "image.backgroundColor failed with error: ";
+            message            += err.what();
+            context->error = message;
+            return;
+        }
+        catch (...) {
+            context->error = std::string("unhandled error");
+            return;
+        }
+    }
 
     if ( !ReadImageMagick(&image, srcBlob, context->srcFormat, context) )
         return;
@@ -545,6 +565,10 @@ NAN_METHOD(Convert) {
     Local<Value> filterValue = obj->Get( NanNew<String>("filter") );
     context->filter = !filterValue->IsUndefined() ?
         *NanAsciiString(filterValue) : "";
+
+    Local<Value> backgroundValue = obj->Get( NanNew<String>("background") );
+    context->background = !backgroundValue->IsUndefined() ?
+        *NanAsciiString(backgroundValue) : "";
 
     uv_work_t* req = new uv_work_t();
     req->data = context;
