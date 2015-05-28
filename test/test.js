@@ -224,6 +224,44 @@ test( 'convert jpg -> jpg aspectfit', function (t) {
     t.end();
 });
 
+test( 'convert png -> png aspectwithbg', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "./test/test.png" ), // 58x66
+        width: 100,
+        height: 100,
+        resizeStyle: 'aspectwithbg',
+        background: '#4d4d4d',
+        quality: 80,
+        format: 'PNG',
+        debug: debug
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    var info = imagemagick.identify({srcData: buffer });
+    t.equal( info.width, 100 );
+    t.equal( info.height, 100 );
+    saveToFileIfDebug( buffer, "out.png-aspectwithbg.png" );
+    t.end();
+});
+
+test( 'convert png.wide -> png.wide aspectwithbg', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "./test/test.wide.png" ), // 66x58
+        width: 100,
+        height: 100,
+        resizeStyle: 'aspectwithbg',
+        background: '#4d4d4d',
+        quality: 80,
+        format: 'PNG',
+        debug: debug
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    var info = imagemagick.identify({srcData: buffer });
+    t.equal( info.width, 100 );
+    t.equal( info.height, 100 );
+    saveToFileIfDebug( buffer, "out.wide.png-aspectwithbg.png" );
+    t.end();
+});
+
 test( 'convert broken png', function (t) {
     var srcData = require('fs').readFileSync( "./test/broken.png" )
     , buffer;

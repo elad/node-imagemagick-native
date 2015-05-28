@@ -395,6 +395,58 @@ void DoConvert(uv_work_t* req) {
                 return;
             }
         }
+        else if ( strcmp ( resizeStyle, "aspectwithbg" ) == 0 ) {
+            // keep aspect ratio, get the maximum image which fits inside specified size
+            char geometryString[ 32 ];
+            sprintf( geometryString, "%dx%d", width, height );
+            if (debug) printf( "resize to: %s\n", geometryString );
+
+            Magick::Image compositeImage(image);
+            try {
+                compositeImage.zoom( geometryString );
+            }
+            catch (std::exception& err) {
+                std::string message = "image.resize failed with error: ";
+                message            += err.what();
+                context->error = message;
+                return;
+            }
+            catch (...) {
+                context->error = std::string("unhandled error");
+                return;
+            }
+
+            sprintf( geometryString, "%dx%d!", width, height );
+            if (debug) printf( "set background to: %s\n", geometryString );
+            try {
+                image.erase();
+                image.zoom( geometryString );
+            }
+            catch (std::exception& err) {
+                std::string message = "image.initialize failed with error: ";
+                message            += err.what();
+                context->error = message;
+                return;
+            }
+            catch (...) {
+                context->error = std::string("unhandled error");
+                return;
+            }
+
+            try {
+                image.composite(compositeImage, Magick::CenterGravity, Magick::OverCompositeOp);
+            }
+            catch (std::exception& err) {
+                std::string message = "image.composite failed with error: ";
+                message            += err.what();
+                context->error = message;
+                return;
+            }
+            catch (...) {
+                context->error = std::string("unhandled error");
+                return;
+            }
+        }
         else {
             context->error = std::string("resizeStyle not supported");
             return;
