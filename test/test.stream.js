@@ -40,7 +40,7 @@ test( 'stream.convert can pipes streams', function (t) {
 
     output.on('close',function(){
         var ret = imagemagick.identify({
-            srcData: fs.readFileSync( 'test-async-temp.png' )
+            srcData: fs.readFileSync( './test/test-async-temp.png' )
         });
         t.equal( ret.width, 100 );
         t.equal( ret.height, 100 );
