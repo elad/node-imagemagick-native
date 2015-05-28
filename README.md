@@ -52,13 +52,13 @@ fs.writeFileSync('after.png', imagemagick.convert({
 
 Original JPEG:
 
-![alt text](http://elad.github.io/node-imagemagick-native/examples/quality.jpg 'Original')
+![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/quality.jpg 'Original')
 
 Converted to PNG:
 
 quality 100 | quality 50 | quality 1
 :---: | :---: | :---:
-![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_100.png 'quality 100') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_50.png 'quality 50') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/quality_1.png 'quality 1')
+![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/quality_100.png 'quality 100') | ![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/quality_50.png 'quality 50') | ![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/quality_1.png 'quality 1')
 
 *Image courtesy of [David Yu](https://www.flickr.com/photos/davidyuweb/14175248591).*
 
@@ -75,7 +75,7 @@ fs.writeFileSync('after.jpg', imagemagick.convert({
 }));
 ```
 
-![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_before.jpg 'Before blur') becomes ![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_after.jpg 'After blur')
+![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/blur_before.jpg 'Before blur') becomes ![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/blur_after.jpg 'After blur')
 
 *Image courtesy of [Tambako The Jaguar](https://www.flickr.com/photos/tambako/3574360498).*
 
@@ -87,6 +87,7 @@ Resized images by specifying `width` and `height`. There are three resizing styl
 
   * `aspectfill`: Default. The resulting image will be exactly the specified size, and may be cropped.
   * `aspectfit`: Scales the image so that it will not have to be cropped.
+  * `aspectwithbg`: Scales the image and fill the rest by background color.
   * `fill`: Squishes or stretches the image so that it fills exactly the specified size.
 
 ```js
@@ -94,20 +95,21 @@ fs.writeFileSync('after_resize.jpg', imagemagick.convert({
 	srcData: fs.readFileSync('before_resize.jpg'),
 	width: 100,
 	height: 100,
-	resizeStyle: 'aspectfill', // is the default, or 'aspectfit' or 'fill'
-	gravity: 'Center' // optional: position crop area when using 'aspectfill'
+	resizeStyle: 'aspectfill', // is the default, 'aspectfit', 'aspectwithbg', or 'fill'
+	gravity: 'Center', // optional: position crop area when using 'aspectfill'
+	background: '#4d4d4d' // optional: background color when using 'aspectwithbg'
 }));
 ```
 
 Original:
   
-![alt text](http://elad.github.io/node-imagemagick-native/examples/resize.jpg 'Original')
+![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/resize.jpg 'Original')
 
 Resized:
 
-aspectfill | aspectfit | fill
-:---: | :---: | :---:
-![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_aspectfill.jpg 'aspectfill') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_aspectfit.jpg 'aspectfit') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/resize_fill.jpg 'fill')
+aspectfill | aspectfit | aspectwithbg | fill
+:---: | :---: | :---: | :---:
+![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/resize_aspectfill.jpg 'aspectfill') | ![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/resize_aspectfit.jpg 'aspectfit') | ![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/resize_aspectwithbg.jpg 'aspectwithbg') | ![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/resize_fill.jpg 'fill')
 
 *Image courtesy of [Christoph](https://www.flickr.com/photos/scheinwelten/381994831).*
 
@@ -127,13 +129,13 @@ fs.writeFileSync('after_rotateflip.jpg', imagemagick.convert({
 
 Original:
 
-![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip.jpg 'Original')
+![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/rotateflip.jpg 'Original')
 
 Modified:
 
 rotate 90 degrees | rotate 180 degrees | flip | flip + rotate 180 degrees = mirror
 :---: | :---: | :---: | :---:
-![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_rotate_90.jpg 'rotate 90') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_rotate_180.jpg 'rotate 180') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_flip.jpg 'flip') | ![alt text](http://elad.github.io/node-imagemagick-native/examples/rotateflip_mirror.jpg 'flip + rotate 180 = mirror')
+![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/rotateflip_rotate_90.jpg 'rotate 90') | ![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/rotateflip_rotate_180.jpg 'rotate 180') | ![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/rotateflip_flip.jpg 'flip') | ![alt text](http://horiuchi.github.io/node-imagemagick-native/examples/rotateflip_mirror.jpg 'flip + rotate 180 = mirror')
 
 *Image courtesy of [Bill Gracey](https://www.flickr.com/photos/9422878@N08/6482704235).*
 
@@ -158,13 +160,15 @@ The `options` argument can have following values:
         width:          optional. px.
         height:         optional. px.
         density         optional. Integer dpi value to convert
-        resizeStyle:    optional. default: 'aspectfill'. can be 'aspectfit', 'fill'
-                        aspectfill: keep aspect ratio, get the exact provided size.
-                        aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
-                        fill:       forget aspect ratio, get the exact provided size
+        resizeStyle:    optional. default: 'aspectfill'. can be 'aspectfit', 'aspectwithbg', 'fill'
+                        aspectfill:   keep aspect ratio, get the exact provided size.
+                        aspectfit:    keep aspect ratio, get maximum image that fits inside provided size
+                        aspectwithbg: keep aspect ratio, get the exact proviede size and no cropped.
+                        fill:         forget aspect ratio, get the exact provided size
         gravity:        optional. default: 'Center'. used to position the crop area when resizeStyle is 'aspectfill'
                                   can be 'NorthWest', 'North', 'NorthEast', 'West',
                                   'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None'
+        background:     optional. default: 'Transpearental'. used to background color when resizeStle is 'aspectwithbg'
         format:         optional. output format, ex: 'JPEG'. see below for candidates
         filter:         optional. resize filter. ex: 'Lagrange', 'Lanczos'.  see below for candidates
         blur:           optional. ex: 0.8
