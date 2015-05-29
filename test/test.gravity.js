@@ -15,7 +15,7 @@ function saveToFileIfDebug (buffer, file) {
 
 test( 'taller default', function (t) {
     var buffer = imagemagick.convert({
-        srcData: require('fs').readFileSync( "test.png" ), // 58x66
+        srcData: require('fs').readFileSync( "./test/test.png" ), // 58x66
         width: 100,
         height: 100,
         resizeStyle: 'aspectfill',
@@ -41,7 +41,7 @@ test( 'taller default', function (t) {
 ].forEach( function (gravity) {
     test( 'taller ' + gravity, function (t) {
         var buffer = imagemagick.convert({
-            srcData: require('fs').readFileSync( "test.png" ), // 58x66
+            srcData: require('fs').readFileSync( "./test/test.png" ), // 58x66
             width: 100,
             height: 100,
             resizeStyle: 'aspectfill',
@@ -56,7 +56,7 @@ test( 'taller default', function (t) {
     });
     test( 'wide ' + gravity, function (t) {
         var buffer = imagemagick.convert({
-            srcData: require('fs').readFileSync( "test.wide.png" ), // 58x66
+            srcData: require('fs').readFileSync( "./test/test.wide.png" ), // 58x66
             width: 100,
             height: 100,
             resizeStyle: 'aspectfill',
