@@ -281,6 +281,26 @@ test( 'convert fill with upscale false', function (t) {
     t.end();
 });
 
+test( 'convert aspectfill with upscale by height', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "test.png" ),
+        width: 500,
+        height: 1000,
+        upscale: false,
+        quality: 80,
+        format: 'png',
+        debug: debug,
+        resizeStyle: 'aspectfill',
+        gravity: 'Center'
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    var info = imagemagick.identify({srcData: buffer });
+    t.equal( info.width, 33 );
+    t.equal( info.height, 66 );
+    saveToFileIfDebug( buffer, "out.aspectfill-height-picture.png" );
+    t.end();
+});
+
 test( 'convert broken png', function (t) {
     var srcData = require('fs').readFileSync( "broken.png" )
     , buffer;

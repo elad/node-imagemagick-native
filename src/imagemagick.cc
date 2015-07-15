@@ -263,7 +263,7 @@ void DoConvert(uv_work_t* req) {
             }
             if(height > image.rows()) {
                 height = image.rows();
-                width = (unsigned int)( aspectratioExpected / height);
+                width = (unsigned int)( height/ aspectratioExpected);
             }
         }
 
