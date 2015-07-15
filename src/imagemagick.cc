@@ -544,28 +544,25 @@ NAN_METHOD(Convert) {
         context->blur = strs.str();
     }
 
-    // shared unused counter for NanCString
-    size_t count;
-
     Local<Value> resizeStyleValue = obj->Get( NanNew<String>("resizeStyle") );
     context->resizeStyle = !resizeStyleValue->IsUndefined() ?
-        NanCString(resizeStyleValue, &count) : "aspectfill";
+        *NanAsciiString(resizeStyleValue) : "aspectfill";
 
     Local<Value> gravityValue = obj->Get( NanNew<String>("gravity") );
     context->gravity = !gravityValue->IsUndefined() ?
-        NanCString(gravityValue, &count) : "Center";
+        *NanAsciiString(gravityValue) : "Center";
 
     Local<Value> formatValue = obj->Get( NanNew<String>("format") );
     context->format = !formatValue->IsUndefined() ?
-         NanCString(formatValue, &count) : "";
+         *NanAsciiString(formatValue) : "";
 
     Local<Value> srcFormatValue = obj->Get( NanNew<String>("srcFormat") );
     context->srcFormat = !srcFormatValue->IsUndefined() ?
-        NanCString(srcFormatValue, &count) : "";
+        *NanAsciiString(srcFormatValue) : "";
 
     Local<Value> filterValue = obj->Get( NanNew<String>("filter") );
     context->filter = !filterValue->IsUndefined() ?
-        NanCString(filterValue, &count) : "";
+        *NanAsciiString(filterValue) : "";
 
     uv_work_t* req = new uv_work_t();
     req->data = context;
@@ -627,15 +624,15 @@ void BuildIdentifyResult(uv_work_t *req, Handle<Value> *argv) {
         argv[0] = NanUndefined();
         Handle<Object> out = NanNew<Object>();
 
-        out->Set(NanNew<String>("width"), NanNew<Integer>(context->image.columns()));
-        out->Set(NanNew<String>("height"), NanNew<Integer>(context->image.rows()));
-        out->Set(NanNew<String>("depth"), NanNew<Integer>(context->image.depth()));
+        out->Set(NanNew<String>("width"), NanNew<Integer>(static_cast<int>(context->image.columns())));
+        out->Set(NanNew<String>("height"), NanNew<Integer>(static_cast<int>(context->image.rows())));
+        out->Set(NanNew<String>("depth"), NanNew<Integer>(static_cast<int>(context->image.depth())));
         out->Set(NanNew<String>("format"), NanNew<String>(context->image.magick().c_str()));
 
         Handle<Object> out_density = NanNew<Object>();
         Magick::Geometry density = context->image.density();
-        out_density->Set(NanNew<String>("width"), NanNew<Integer>(density.width()));
-        out_density->Set(NanNew<String>("height"), NanNew<Integer>(density.height()));
+        out_density->Set(NanNew<String>("width"), NanNew<Integer>(static_cast<int>(density.width())));
+        out_density->Set(NanNew<String>("height"), NanNew<Integer>(static_cast<int>(density.height())));
         out->Set(NanNew<String>("density"), out_density);
 
         Handle<Object> out_exif = NanNew<Object>();
@@ -748,9 +745,9 @@ NAN_METHOD(GetConstPixels) {
     }
 
     unsigned int xValue       = obj->Get( NanNew<String>("x") )->Uint32Value();
-    unsigned int yValue       = obj->Get( NanNew<String>("y") )->Uint32Value();  
-    unsigned int columnsValue = obj->Get( NanNew<String>("columns") )->Uint32Value();  
-    unsigned int rowsValue    = obj->Get( NanNew<String>("rows") )->Uint32Value();  
+    unsigned int yValue       = obj->Get( NanNew<String>("y") )->Uint32Value();
+    unsigned int columnsValue = obj->Get( NanNew<String>("columns") )->Uint32Value();
+    unsigned int rowsValue    = obj->Get( NanNew<String>("rows") )->Uint32Value();
 
     int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
     int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
@@ -759,9 +756,9 @@ NAN_METHOD(GetConstPixels) {
 
     Magick::Blob srcBlob( Buffer::Data(srcData), Buffer::Length(srcData));
 
-    Magick::Image image;    
+    Magick::Image image;
     try {
-        image.read( srcBlob );        
+        image.read( srcBlob );
     }
     catch (std::exception& err) {
         std::string what (err.what());
@@ -779,7 +776,7 @@ NAN_METHOD(GetConstPixels) {
     }
 
     size_t w = image.columns();
-    size_t h = image.rows();    
+    size_t h = image.rows();
 
     if (xValue+columnsValue > w || yValue+rowsValue > h) {
         return NanThrowError("x/y/columns/rows values are beyond the image\'s dimensions");
@@ -796,7 +793,7 @@ NAN_METHOD(GetConstPixels) {
         color->Set(NanNew<String>("green"),   NanNew<Integer>(pixel.green));
         color->Set(NanNew<String>("blue"),    NanNew<Integer>(pixel.blue));
         color->Set(NanNew<String>("opacity"), NanNew<Integer>(pixel.opacity));
-        
+
         out->Set(i, color);
     }
 
@@ -1016,9 +1013,8 @@ NAN_METHOD(Composite) {
     context->compositeLength = Buffer::Length(compositeData);
 
     Local<Value> gravityValue = obj->Get( NanNew<String>("gravity") );
-    size_t count;
     context->gravity = !gravityValue->IsUndefined() ?
-         NanCString(gravityValue, &count) : "";
+         *NanAsciiString(gravityValue) : "";
 
     uv_work_t* req = new uv_work_t();
     req->data = context;
