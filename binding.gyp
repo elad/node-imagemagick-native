@@ -33,7 +33,6 @@
             '-l<(MAGICK_ROOT)/lib/CORE_RL_magick_.lib',
             '-l<(MAGICK_ROOT)/lib/CORE_RL_Magick++_.lib',
             '-l<(MAGICK_ROOT)/lib/CORE_RL_wand_.lib',
-            '-l<(MAGICK_ROOT)/lib/X11.lib'
           ],
           'include_dirs': [
             '<(MAGICK_ROOT)/include',
