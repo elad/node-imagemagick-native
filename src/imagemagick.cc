@@ -121,16 +121,13 @@ inline Local<Value> WrapPointer(char *ptr) {
 #define RETURN_BLOB_OR_ERROR(req) \
     do { \
         im_ctx_base* _context = static_cast<im_ctx_base*>(req->data); \
-        delete req; \
         if (!_context->error.empty()) { \
-			const Local<Value> _err_str = Nan::New<String>(_context->error.c_str()).ToLocalChecked(); \
-            delete _context; \
-            return Nan::ThrowError(_err_str); \
+            Nan::ThrowError(_context->error.c_str()); \
         } else { \
             const Local<Value> _retBuffer = WrapPointer((char *)_context->dstBlob.data(), _context->dstBlob.length()); \
-            delete _context; \
             info.GetReturnValue().Set(_retBuffer); \
         } \
+        delete req; \
     } while(0);
 
 
