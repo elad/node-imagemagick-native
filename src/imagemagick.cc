@@ -123,7 +123,7 @@ inline Local<Value> WrapPointer(char *ptr) {
         im_ctx_base* _context = static_cast<im_ctx_base*>(req->data); \
         delete req; \
         if (!_context->error.empty()) { \
-            static const char *_err_str = _context->error.c_str(); \
+			const Local<Value> _err_str = Nan::New<String>(_context->error.c_str()).ToLocalChecked(); \
             delete _context; \
             return Nan::ThrowError(_err_str); \
         } else { \
