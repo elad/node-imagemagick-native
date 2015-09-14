@@ -110,11 +110,11 @@ struct composite_im_ctx : im_ctx_base {
 void wrap_pointer_cb(char *data, void *hint) {}
 
 inline Local<Value> WrapPointer(char *ptr, size_t length) {
-  Nan::EscapableHandleScope scope;
-  return scope.Escape(Nan::NewBuffer(ptr, length, wrap_pointer_cb, NULL).ToLocalChecked());
+    Nan::EscapableHandleScope scope;
+    return scope.Escape(Nan::NewBuffer(ptr, length, wrap_pointer_cb, NULL).ToLocalChecked());
 }
 inline Local<Value> WrapPointer(char *ptr) {
-  return WrapPointer(ptr, 0);
+    return WrapPointer(ptr, 0);
 }
 
 
@@ -432,7 +432,7 @@ void DoConvert(uv_work_t* req) {
 
 // Make callback from convert or composite
 void GeneratedBlobAfter(uv_work_t* req) {
-	Nan::HandleScope scope;
+    Nan::HandleScope scope;
 
     im_ctx_base* context = static_cast<im_ctx_base*>(req->data);
     delete req;
@@ -448,7 +448,7 @@ void GeneratedBlobAfter(uv_work_t* req) {
         argv[1] = WrapPointer((char *)context->dstBlob.data(), context->dstBlob.length());
     }
 
-	Nan::TryCatch try_catch; // don't quite see the necessity of this
+    Nan::TryCatch try_catch; // don't quite see the necessity of this
 
     context->callback->Call(2, argv);
 
@@ -456,12 +456,13 @@ void GeneratedBlobAfter(uv_work_t* req) {
 
     delete context;
 
-    if (try_catch.HasCaught())
+    if (try_catch.HasCaught()) {
 #if NODE_VERSION_AT_LEAST(0, 12, 0)
-		Nan::FatalException(try_catch);
+        Nan::FatalException(try_catch);
 #else
         FatalException(try_catch);
 #endif
+    }
 }
 
 // input
@@ -486,7 +487,7 @@ void GeneratedBlobAfter(uv_work_t* req) {
 //              }
 //   info[ 1 ]: callback. optional, if present runs async and returns result with callback(error, buffer)
 NAN_METHOD(Convert) {
-	Nan::HandleScope();
+    Nan::HandleScope();
 
     bool isSync = (info.Length() == 1);
 
@@ -640,14 +641,14 @@ void BuildIdentifyResult(uv_work_t *req, Local<Value> *argv) {
 }
 
 void IdentifyAfter(uv_work_t* req) {
-	Nan::HandleScope scope;
+    Nan::HandleScope scope;
 
     Local<Value> argv[2];
     BuildIdentifyResult(req,argv);
 
     identify_im_ctx* context = static_cast<identify_im_ctx*>(req->data);
 
-	Nan::TryCatch try_catch; // don't quite see the necessity of this
+    Nan::TryCatch try_catch; // don't quite see the necessity of this
 
     context->callback->Call(2, argv);
 
@@ -655,8 +656,13 @@ void IdentifyAfter(uv_work_t* req) {
     delete context;
     delete req;
 
-    if (try_catch.HasCaught())
+    if (try_catch.HasCaught()) {
+#if NODE_VERSION_AT_LEAST(0, 12, 0)
+        Nan::FatalException(try_catch);
+#else
         FatalException(try_catch);
+#endif
+    }
 }
 
 // input
@@ -667,7 +673,7 @@ void IdentifyAfter(uv_work_t* req) {
 //              }
 //   info[ 1 ]: callback. optional, if present runs async and returns result with callback(error, info)
 NAN_METHOD(Identify) {
-	Nan::HandleScope scope;
+    Nan::HandleScope scope;
 
     bool isSync = info.Length() == 1;
 
@@ -727,7 +733,7 @@ NAN_METHOD(Identify) {
 //                  rows:           required.
 //              }
 NAN_METHOD(GetConstPixels) {
-	Nan::HandleScope();
+    Nan::HandleScope();
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
     if ( info.Length() != 1 ) {
@@ -804,7 +810,7 @@ NAN_METHOD(GetConstPixels) {
 //                  debug:          optional. 1 or 0
 //              }
 NAN_METHOD(QuantizeColors) {
-	Nan::HandleScope();
+    Nan::HandleScope();
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
     if ( info.Length() != 1 ) {
@@ -975,7 +981,7 @@ void DoComposite(uv_work_t* req) {
 //              }
 //   info[ 1 ]: callback. optional, if present runs async and returns result with callback(error, buffer)
 NAN_METHOD(Composite) {
-	Nan::HandleScope();
+    Nan::HandleScope();
 
     bool isSync = (info.Length() == 1);
 
@@ -1027,26 +1033,26 @@ NAN_METHOD(Composite) {
 }
 
 NAN_METHOD(Version) {
-	Nan::HandleScope();
+    Nan::HandleScope();
 
     info.GetReturnValue().Set(Nan::New<String>(MagickLibVersionText).ToLocalChecked());
 }
 
 NAN_METHOD(GetQuantumDepth) {
-	Nan::HandleScope();
+    Nan::HandleScope();
 
     info.GetReturnValue().Set(Nan::New<Integer>(MAGICKCORE_QUANTUM_DEPTH));
 }
 
 void init(Handle<Object> exports) {
 #if NODE_MODULE_VERSION >= 14
-	Nan::SetMethod(exports, "convert", Convert);
-	Nan::SetMethod(exports, "identify", Identify);
-	Nan::SetMethod(exports, "quantizeColors", QuantizeColors);
-	Nan::SetMethod(exports, "composite", Composite);
-	Nan::SetMethod(exports, "version", Version);
-	Nan::SetMethod(exports, "getConstPixels", GetConstPixels);
-	Nan::SetMethod(exports, "quantumDepth", GetQuantumDepth); // QuantumDepth is already defined
+    Nan::SetMethod(exports, "convert", Convert);
+    Nan::SetMethod(exports, "identify", Identify);
+    Nan::SetMethod(exports, "quantizeColors", QuantizeColors);
+    Nan::SetMethod(exports, "composite", Composite);
+    Nan::SetMethod(exports, "version", Version);
+    Nan::SetMethod(exports, "getConstPixels", GetConstPixels);
+    Nan::SetMethod(exports, "quantumDepth", GetQuantumDepth); // QuantumDepth is already defined
 #else
     exports->Set(Nan::New<String>("convert").ToLocalChecked(), FunctionTemplate::New(Convert)->GetFunction());
     exports->Set(Nan::New<String>("identify").ToLocalChecked(), FunctionTemplate::New(Identify)->GetFunction());
