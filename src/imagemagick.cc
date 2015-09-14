@@ -106,22 +106,6 @@ struct composite_im_ctx : im_ctx_base {
     composite_im_ctx() {}
 };
 
-#define RETURN_BLOB_OR_ERROR(req) \
-    do { \
-        im_ctx_base* _context = static_cast<im_ctx_base*>(req->data); \
-        delete req; \
-        if (!_context->error.empty()) { \
-            const char *_err_str = _context->error.c_str(); \
-            delete _context; \
-            return Nan::ThrowError(_err_str); \
-        } else { \
-            const Handle<Object> _retBuffer = Nan::NewBuffer(_context->dstBlob.length()).ToLocalChecked(); \
-            memcpy( Buffer::Data(_retBuffer), _context->dstBlob.data(), _context->dstBlob.length() ); \
-            delete _context; \
-            info.GetReturnValue().Set(_retBuffer); \
-        } \
-    } while(0);
-
 
 void wrap_pointer_cb(char *data, void *hint) {}
 
@@ -132,6 +116,22 @@ inline Local<Value> WrapPointer(char *ptr, size_t length) {
 inline Local<Value> WrapPointer(char *ptr) {
   return WrapPointer(ptr, 0);
 }
+
+
+#define RETURN_BLOB_OR_ERROR(req) \
+    do { \
+        im_ctx_base* _context = static_cast<im_ctx_base*>(req->data); \
+        delete req; \
+        if (!_context->error.empty()) { \
+            const char *_err_str = _context->error.c_str(); \
+            delete _context; \
+            return Nan::ThrowError(_err_str); \
+        } else { \
+            const Local<Value> _retBuffer = WrapPointer((char *)_context->dstBlob.data(), _context->dstBlob.length()); \
+            delete _context; \
+            info.GetReturnValue().Set(_retBuffer); \
+        } \
+    } while(0);
 
 
 bool ReadImageMagick(Magick::Image *image, Magick::Blob srcBlob, std::string srcFormat, im_ctx_base *context) {
@@ -625,13 +625,13 @@ void BuildIdentifyResult(uv_work_t *req, Local<Value> *argv) {
         out->Set(Nan::New<String>("depth").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.depth())));
         out->Set(Nan::New<String>("format").ToLocalChecked(), Nan::New<String>(context->image.magick().c_str()).ToLocalChecked());
 
-        Handle<Object> out_density = Nan::New<Object>();
+        Local<Object> out_density = Nan::New<Object>();
         Magick::Geometry density = context->image.density();
         out_density->Set(Nan::New<String>("width").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(density.width())));
         out_density->Set(Nan::New<String>("height").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(density.height())));
         out->Set(Nan::New<String>("density").ToLocalChecked(), out_density);
 
-        Handle<Object> out_exif = Nan::New<Object>();
+        Local<Object> out_exif = Nan::New<Object>();
         out_exif->Set(Nan::New<String>("orientation").ToLocalChecked(), Nan::New<Integer>(atoi(context->image.attribute("EXIF:Orientation").c_str())));
         out->Set(Nan::New<String>("exif").ToLocalChecked(), out_exif);
 
@@ -780,7 +780,7 @@ NAN_METHOD(GetConstPixels) {
 
     const Magick::PixelPacket *pixels = image.getConstPixels(xValue, yValue, columnsValue, rowsValue);
 
-    Handle<Object> out = Nan::New<Array>();
+    Local<Object> out = Nan::New<Array>();
     for (unsigned int i=0; i<columnsValue * rowsValue; i++) {
         Magick::PixelPacket pixel = pixels[ i ];
         Local<Object> color = Nan::New<Object>();
@@ -878,7 +878,7 @@ NAN_METHOD(QuantizeColors) {
         if (index >= colorsCount) break;
     }
 
-    Handle<Object> out = Nan::New<Array>();
+    Local<Object> out = Nan::New<Array>();
 
     for(int x = 0; x < colorsCount; x++)
         if (debug) printf("found rgb : %d %d %d\n", ((int) colors[x].red) / 255, ((int) colors[x].green) / 255, ((int) colors[x].blue) / 255);
