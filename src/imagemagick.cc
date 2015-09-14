@@ -54,7 +54,7 @@ private:
 
 // Base context for calls shared on sync and async code paths
 struct im_ctx_base {
-    NanCallback * callback;
+	Nan::Callback * callback;
     std::string error;
 
     char* srcData;
@@ -113,14 +113,26 @@ struct composite_im_ctx : im_ctx_base {
         if (!_context->error.empty()) { \
             const char *_err_str = _context->error.c_str(); \
             delete _context; \
-            return NanThrowError(_err_str); \
+            return Nan::ThrowError(_err_str); \
         } else { \
-            const Handle<Object> _retBuffer = NanNewBufferHandle(_context->dstBlob.length()); \
+            const Handle<Object> _retBuffer = Nan::NewBuffer(_context->dstBlob.length()).ToLocalChecked(); \
             memcpy( Buffer::Data(_retBuffer), _context->dstBlob.data(), _context->dstBlob.length() ); \
             delete _context; \
-            NanReturnValue(_retBuffer); \
+            info.GetReturnValue().Set(_retBuffer); \
         } \
     } while(0);
+
+
+void wrap_pointer_cb(char *data, void *hint) {}
+
+inline Local<Value> WrapPointer(char *ptr, size_t length) {
+  Nan::EscapableHandleScope scope;
+  return scope.Escape(Nan::NewBuffer(ptr, length, wrap_pointer_cb, NULL).ToLocalChecked());
+}
+inline Local<Value> WrapPointer(char *ptr) {
+  return WrapPointer(ptr, 0);
+}
+
 
 bool ReadImageMagick(Magick::Image *image, Magick::Blob srcBlob, std::string srcFormat, im_ctx_base *context) {
     if( ! srcFormat.empty() ){
@@ -420,25 +432,23 @@ void DoConvert(uv_work_t* req) {
 
 // Make callback from convert or composite
 void GeneratedBlobAfter(uv_work_t* req) {
-    NanScope();
+	Nan::HandleScope scope;
 
     im_ctx_base* context = static_cast<im_ctx_base*>(req->data);
     delete req;
 
-    Handle<Value> argv[2];
+    Local<Value> argv[2];
 
     if (!context->error.empty()) {
-        argv[0] = Exception::Error(NanNew<String>(context->error.c_str()));
-        argv[1] = NanUndefined();
+        argv[0] = Exception::Error(Nan::New<String>(context->error.c_str()).ToLocalChecked());
+        argv[1] = Nan::Undefined();
     }
     else {
-        argv[0] = NanUndefined();
-        const Handle<Object> retBuffer = NanNewBufferHandle(context->dstBlob.length());
-        memcpy( Buffer::Data(retBuffer), context->dstBlob.data(), context->dstBlob.length() );
-        argv[1] = retBuffer;
+        argv[0] = Nan::Undefined();
+        argv[1] = WrapPointer((char *)context->dstBlob.data(), context->dstBlob.length());
     }
 
-    TryCatch try_catch; // don't quite see the necessity of this
+	Nan::TryCatch try_catch; // don't quite see the necessity of this
 
     context->callback->Call(2, argv);
 
@@ -447,11 +457,15 @@ void GeneratedBlobAfter(uv_work_t* req) {
     delete context;
 
     if (try_catch.HasCaught())
+#if NODE_VERSION_AT_LEAST(0, 12, 0)
+		Nan::FatalException(try_catch);
+#else
         FatalException(try_catch);
+#endif
 }
 
 // input
-//   args[ 0 ]: options. required, object with following key,values
+//   info[ 0 ]: options. required, object with following key,values
 //              {
 //                  srcData:     required. Buffer with binary image data
 //                  quality:     optional. 0-100 integer, default 75. JPEG/MIFF/PNG compression level.
@@ -470,54 +484,54 @@ void GeneratedBlobAfter(uv_work_t* req) {
 //                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
 //                  debug:       optional. 1 or 0
 //              }
-//   args[ 1 ]: callback. optional, if present runs async and returns result with callback(error, buffer)
+//   info[ 1 ]: callback. optional, if present runs async and returns result with callback(error, buffer)
 NAN_METHOD(Convert) {
-    NanScope();
+	Nan::HandleScope();
 
-    bool isSync = (args.Length() == 1);
+    bool isSync = (info.Length() == 1);
 
-    if ( args.Length() < 1 ) {
-        return NanThrowError("convert() requires 1 (option) argument!");
+    if ( info.Length() < 1 ) {
+        return Nan::ThrowError("convert() requires 1 (option) argument!");
     }
 
-    if ( ! args[ 0 ]->IsObject() ) {
-        return NanThrowError("convert()'s 1st argument should be an object");
+    if ( ! info[ 0 ]->IsObject() ) {
+        return Nan::ThrowError("convert()'s 1st argument should be an object");
     }
 
-    if( ! isSync && ! args[ 1 ]->IsFunction() ) {
-        return NanThrowError("convert()'s 2nd argument should be a function");
+    if( ! isSync && ! info[ 1 ]->IsFunction() ) {
+        return Nan::ThrowError("convert()'s 2nd argument should be a function");
     }
 
-    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+    Local<Object> obj = Local<Object>::Cast( info[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( Nan::New<String>("srcData").ToLocalChecked() ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
-        return NanThrowError("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
+        return Nan::ThrowError("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
     convert_im_ctx* context = new convert_im_ctx();
     context->srcData = Buffer::Data(srcData);
     context->length = Buffer::Length(srcData);
-    context->debug = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    context->ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
-    context->maxMemory = obj->Get( NanNew<String>("maxMemory") )->Uint32Value();
-    context->width = obj->Get( NanNew<String>("width") )->Uint32Value();
-    context->height = obj->Get( NanNew<String>("height") )->Uint32Value();
-    context->quality = obj->Get( NanNew<String>("quality") )->Uint32Value();
-    context->rotate = obj->Get( NanNew<String>("rotate") )->Int32Value();
-    context->flip = obj->Get( NanNew<String>("flip") )->Uint32Value();
-    context->density = obj->Get( NanNew<String>("density") )->Int32Value();
+    context->debug = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
+    context->ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
+    context->maxMemory = obj->Get( Nan::New<String>("maxMemory").ToLocalChecked() )->Uint32Value();
+    context->width = obj->Get( Nan::New<String>("width").ToLocalChecked() )->Uint32Value();
+    context->height = obj->Get( Nan::New<String>("height").ToLocalChecked() )->Uint32Value();
+    context->quality = obj->Get( Nan::New<String>("quality").ToLocalChecked() )->Uint32Value();
+    context->rotate = obj->Get( Nan::New<String>("rotate").ToLocalChecked() )->Int32Value();
+    context->flip = obj->Get( Nan::New<String>("flip").ToLocalChecked() )->Uint32Value();
+    context->density = obj->Get( Nan::New<String>("density").ToLocalChecked() )->Int32Value();
 
-    Local<Value> trimValue = obj->Get( NanNew<String>("trim") );
+    Local<Value> trimValue = obj->Get( Nan::New<String>("trim").ToLocalChecked() );
     if ( (context->trim = ! trimValue->IsUndefined() && trimValue->BooleanValue()) ) {
-        context->trimFuzz = obj->Get( NanNew<String>("trimFuzz") )->NumberValue() * (double) (1L << MAGICKCORE_QUANTUM_DEPTH);
+        context->trimFuzz = obj->Get( Nan::New<String>("trimFuzz").ToLocalChecked() )->NumberValue() * (double) (1L << MAGICKCORE_QUANTUM_DEPTH);
     }
 
-    Local<Value> stripValue = obj->Get( NanNew<String>("strip") );
+    Local<Value> stripValue = obj->Get( Nan::New<String>("strip").ToLocalChecked() );
     context->strip = ! stripValue->IsUndefined() && stripValue->BooleanValue();
 
     // manage blur as string for detect is empty
-    Local<Value> blurValue = obj->Get( NanNew<String>("blur") );
+    Local<Value> blurValue = obj->Get( Nan::New<String>("blur").ToLocalChecked() );
     context->blur = "";
     if ( ! blurValue->IsUndefined() ) {
         double blurD = blurValue->NumberValue();
@@ -526,34 +540,34 @@ NAN_METHOD(Convert) {
         context->blur = strs.str();
     }
 
-    Local<Value> resizeStyleValue = obj->Get( NanNew<String>("resizeStyle") );
+    Local<Value> resizeStyleValue = obj->Get( Nan::New<String>("resizeStyle").ToLocalChecked() );
     context->resizeStyle = !resizeStyleValue->IsUndefined() ?
-        *NanAsciiString(resizeStyleValue) : "aspectfill";
+        *String::Utf8Value(resizeStyleValue) : "aspectfill";
 
-    Local<Value> gravityValue = obj->Get( NanNew<String>("gravity") );
+    Local<Value> gravityValue = obj->Get( Nan::New<String>("gravity").ToLocalChecked() );
     context->gravity = !gravityValue->IsUndefined() ?
-        *NanAsciiString(gravityValue) : "Center";
+        *String::Utf8Value(gravityValue) : "Center";
 
-    Local<Value> formatValue = obj->Get( NanNew<String>("format") );
+    Local<Value> formatValue = obj->Get( Nan::New<String>("format").ToLocalChecked() );
     context->format = !formatValue->IsUndefined() ?
-         *NanAsciiString(formatValue) : "";
+		*String::Utf8Value(formatValue) : "";
 
-    Local<Value> srcFormatValue = obj->Get( NanNew<String>("srcFormat") );
+    Local<Value> srcFormatValue = obj->Get( Nan::New<String>("srcFormat").ToLocalChecked() );
     context->srcFormat = !srcFormatValue->IsUndefined() ?
-        *NanAsciiString(srcFormatValue) : "";
+        *String::Utf8Value(srcFormatValue) : "";
 
-    Local<Value> filterValue = obj->Get( NanNew<String>("filter") );
+    Local<Value> filterValue = obj->Get( Nan::New<String>("filter").ToLocalChecked() );
     context->filter = !filterValue->IsUndefined() ?
-        *NanAsciiString(filterValue) : "";
+        *String::Utf8Value(filterValue) : "";
 
     uv_work_t* req = new uv_work_t();
     req->data = context;
     if(!isSync) {
-        context->callback = new NanCallback(Local<Function>::Cast(args[1]));
+        context->callback = new Nan::Callback(Local<Function>::Cast(info[1]));
 
         uv_queue_work(uv_default_loop(), req, DoConvert, (uv_after_work_cb)GeneratedBlobAfter);
 
-        NanReturnUndefined();
+		return;
     } else {
         DoConvert(req);
         RETURN_BLOB_OR_ERROR(req)
@@ -595,45 +609,45 @@ void DoIdentify(uv_work_t* req) {
     context->image = image;
 }
 
-void BuildIdentifyResult(uv_work_t *req, Handle<Value> *argv) {
+void BuildIdentifyResult(uv_work_t *req, Local<Value> *argv) {
     identify_im_ctx* context = static_cast<identify_im_ctx*>(req->data);
 
     if (!context->error.empty()) {
-        argv[0] = Exception::Error(NanNew<String>(context->error.c_str()));
-        argv[1] = NanUndefined();
+        argv[0] = Exception::Error(Nan::New<String>(context->error.c_str()).ToLocalChecked());
+        argv[1] = Nan::Undefined();
     }
     else {
-        argv[0] = NanUndefined();
-        Handle<Object> out = NanNew<Object>();
+        argv[0] = Nan::Undefined();
+        Local<Object> out = Nan::New<Object>();
 
-        out->Set(NanNew<String>("width"), NanNew<Integer>(static_cast<int>(context->image.columns())));
-        out->Set(NanNew<String>("height"), NanNew<Integer>(static_cast<int>(context->image.rows())));
-        out->Set(NanNew<String>("depth"), NanNew<Integer>(static_cast<int>(context->image.depth())));
-        out->Set(NanNew<String>("format"), NanNew<String>(context->image.magick().c_str()));
+        out->Set(Nan::New<String>("width").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.columns())));
+        out->Set(Nan::New<String>("height").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.rows())));
+        out->Set(Nan::New<String>("depth").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.depth())));
+        out->Set(Nan::New<String>("format").ToLocalChecked(), Nan::New<String>(context->image.magick().c_str()).ToLocalChecked());
 
-        Handle<Object> out_density = NanNew<Object>();
+        Handle<Object> out_density = Nan::New<Object>();
         Magick::Geometry density = context->image.density();
-        out_density->Set(NanNew<String>("width"), NanNew<Integer>(static_cast<int>(density.width())));
-        out_density->Set(NanNew<String>("height"), NanNew<Integer>(static_cast<int>(density.height())));
-        out->Set(NanNew<String>("density"), out_density);
+        out_density->Set(Nan::New<String>("width").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(density.width())));
+        out_density->Set(Nan::New<String>("height").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(density.height())));
+        out->Set(Nan::New<String>("density").ToLocalChecked(), out_density);
 
-        Handle<Object> out_exif = NanNew<Object>();
-        out_exif->Set(NanNew<String>("orientation"), NanNew<Integer>(atoi(context->image.attribute("EXIF:Orientation").c_str())));
-        out->Set(NanNew<String>("exif"), out_exif);
+        Handle<Object> out_exif = Nan::New<Object>();
+        out_exif->Set(Nan::New<String>("orientation").ToLocalChecked(), Nan::New<Integer>(atoi(context->image.attribute("EXIF:Orientation").c_str())));
+        out->Set(Nan::New<String>("exif").ToLocalChecked(), out_exif);
 
         argv[1] = out;
     }
 }
 
 void IdentifyAfter(uv_work_t* req) {
-    NanScope();
+	Nan::HandleScope scope;
 
-    Handle<Value> argv[2];
+    Local<Value> argv[2];
     BuildIdentifyResult(req,argv);
 
     identify_im_ctx* context = static_cast<identify_im_ctx*>(req->data);
 
-    TryCatch try_catch; // don't quite see the necessity of this
+	Nan::TryCatch try_catch; // don't quite see the necessity of this
 
     context->callback->Call(2, argv);
 
@@ -646,37 +660,37 @@ void IdentifyAfter(uv_work_t* req) {
 }
 
 // input
-//   args[ 0 ]: options. required, object with following key,values
+//   info[ 0 ]: options. required, object with following key,values
 //              {
 //                  srcData:        required. Buffer with binary image data
 //                  debug:          optional. 1 or 0
 //              }
-//   args[ 1 ]: callback. optional, if present runs async and returns result with callback(error, info)
+//   info[ 1 ]: callback. optional, if present runs async and returns result with callback(error, info)
 NAN_METHOD(Identify) {
-    NanScope();
+	Nan::HandleScope scope;
 
-    bool isSync = args.Length() == 1;
+    bool isSync = info.Length() == 1;
 
-    if ( args.Length() < 1 ) {
-        return NanThrowError("identify() requires 1 (option) argument!");
+    if ( info.Length() < 1 ) {
+        return Nan::ThrowError("identify() requires 1 (option) argument!");
     }
-    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+    Local<Object> obj = Local<Object>::Cast( info[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( Nan::New<String>("srcData").ToLocalChecked() ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
-        return NanThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
+        return Nan::ThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    if( ! isSync && ! args[ 1 ]->IsFunction() ) {
-        return NanThrowError("identify()'s 2nd argument should be a function");
+    if( ! isSync && ! info[ 1 ]->IsFunction() ) {
+        return Nan::ThrowError("identify()'s 2nd argument should be a function");
     }
 
     identify_im_ctx* context = new identify_im_ctx();
     context->srcData = Buffer::Data(srcData);
     context->length = Buffer::Length(srcData);
 
-    context->debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    context->ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
+    context->debug          = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
+    context->ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
 
     if (context->debug) printf( "debug: on\n" );
     if (context->debug) printf( "ignoreWarnings: %d\n", context->ignoreWarnings );
@@ -684,27 +698,27 @@ NAN_METHOD(Identify) {
     uv_work_t* req = new uv_work_t();
     req->data = context;
     if(!isSync) {
-        context->callback = new NanCallback(Local<Function>::Cast(args[1]));
+        context->callback = new Nan::Callback(Local<Function>::Cast(info[1]));
 
         uv_queue_work(uv_default_loop(), req, DoIdentify, (uv_after_work_cb)IdentifyAfter);
 
-        NanReturnUndefined();
+        return;
     } else {
         DoIdentify(req);
-        Handle<Value> argv[2];
-        BuildIdentifyResult(req,argv);
+        Local<Value> argv[2];
+        BuildIdentifyResult(req, argv);
         delete static_cast<identify_im_ctx*>(req->data);
         delete req;
         if(argv[0]->IsUndefined()){
-            NanReturnValue(argv[1]);
+            info.GetReturnValue().Set(argv[1]);
         } else {
-            return NanThrowError(argv[0]);
+            return Nan::ThrowError(argv[0]);
         }
     }
 }
 
 // input
-//   args[ 0 ]: options. required, object with following key,values
+//   info[ 0 ]: options. required, object with following key,values
 //              {
 //                  srcData:        required. Buffer with binary image data
 //                  x:              required. x,y,columns,rows provide the area of interest.
@@ -713,26 +727,26 @@ NAN_METHOD(Identify) {
 //                  rows:           required.
 //              }
 NAN_METHOD(GetConstPixels) {
-    NanScope();
+	Nan::HandleScope();
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
-    if ( args.Length() != 1 ) {
-        return NanThrowError("getConstPixels() requires 1 (option) argument!");
+    if ( info.Length() != 1 ) {
+        return Nan::ThrowError("getConstPixels() requires 1 (option) argument!");
     }
-    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+    Local<Object> obj = Local<Object>::Cast( info[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( Nan::New<String>("srcData").ToLocalChecked() ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
-        return NanThrowError("getConstPixels()'s 1st argument should have \"srcData\" key with a Buffer instance");
+        return Nan::ThrowError("getConstPixels()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    unsigned int xValue       = obj->Get( NanNew<String>("x") )->Uint32Value();
-    unsigned int yValue       = obj->Get( NanNew<String>("y") )->Uint32Value();
-    unsigned int columnsValue = obj->Get( NanNew<String>("columns") )->Uint32Value();
-    unsigned int rowsValue    = obj->Get( NanNew<String>("rows") )->Uint32Value();
+    unsigned int xValue       = obj->Get( Nan::New<String>("x").ToLocalChecked() )->Uint32Value();
+    unsigned int yValue       = obj->Get( Nan::New<String>("y").ToLocalChecked() )->Uint32Value();
+    unsigned int columnsValue = obj->Get( Nan::New<String>("columns").ToLocalChecked() )->Uint32Value();
+    unsigned int rowsValue    = obj->Get( Nan::New<String>("rows").ToLocalChecked() )->Uint32Value();
 
-    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
+    int debug          = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
+    int ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
     if (debug) printf( "debug: on\n" );
     if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
@@ -750,64 +764,64 @@ NAN_METHOD(GetConstPixels) {
             if (debug) printf("warning: %s\n", message.c_str());
         }
         else {
-            return NanThrowError(message.c_str());
+            return Nan::ThrowError(message.c_str());
         }
     }
     catch (...) {
-        return NanThrowError("unhandled error");
+        return Nan::ThrowError("unhandled error");
     }
 
     size_t w = image.columns();
     size_t h = image.rows();
 
     if (xValue+columnsValue > w || yValue+rowsValue > h) {
-        return NanThrowError("x/y/columns/rows values are beyond the image\'s dimensions");
+        return Nan::ThrowError("x/y/columns/rows values are beyond the image\'s dimensions");
     }
 
     const Magick::PixelPacket *pixels = image.getConstPixels(xValue, yValue, columnsValue, rowsValue);
 
-    Handle<Object> out = NanNew<Array>();
+    Handle<Object> out = Nan::New<Array>();
     for (unsigned int i=0; i<columnsValue * rowsValue; i++) {
         Magick::PixelPacket pixel = pixels[ i ];
-        Local<Object> color = NanNew<Object>();
+        Local<Object> color = Nan::New<Object>();
 
-        color->Set(NanNew<String>("red"),     NanNew<Integer>(pixel.red));
-        color->Set(NanNew<String>("green"),   NanNew<Integer>(pixel.green));
-        color->Set(NanNew<String>("blue"),    NanNew<Integer>(pixel.blue));
-        color->Set(NanNew<String>("opacity"), NanNew<Integer>(pixel.opacity));
+        color->Set(Nan::New<String>("red").ToLocalChecked(),     Nan::New<Integer>(pixel.red));
+        color->Set(Nan::New<String>("green").ToLocalChecked(),   Nan::New<Integer>(pixel.green));
+        color->Set(Nan::New<String>("blue").ToLocalChecked(),    Nan::New<Integer>(pixel.blue));
+        color->Set(Nan::New<String>("opacity").ToLocalChecked(), Nan::New<Integer>(pixel.opacity));
 
         out->Set(i, color);
     }
 
-    NanReturnValue(out);
+    info.GetReturnValue().Set(out);
 }
 
 // input
-//   args[ 0 ]: options. required, object with following key,values
+//   info[ 0 ]: options. required, object with following key,values
 //              {
 //                  srcData:        required. Buffer with binary image data
 //                  colors:         optional. 5 by default
 //                  debug:          optional. 1 or 0
 //              }
 NAN_METHOD(QuantizeColors) {
-    NanScope();
+	Nan::HandleScope();
     MagickCore::SetMagickResourceLimit(MagickCore::ThreadResource, 1);
 
-    if ( args.Length() != 1 ) {
-        return NanThrowError("quantizeColors() requires 1 (option) argument!");
+    if ( info.Length() != 1 ) {
+        return Nan::ThrowError("quantizeColors() requires 1 (option) argument!");
     }
-    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+    Local<Object> obj = Local<Object>::Cast( info[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( Nan::New<String>("srcData").ToLocalChecked() ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
-        return NanThrowError("quantizeColors()'s 1st argument should have \"srcData\" key with a Buffer instance");
+        return Nan::ThrowError("quantizeColors()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int colorsCount = obj->Get( NanNew<String>("colors") )->Uint32Value();
+    int colorsCount = obj->Get( Nan::New<String>("colors").ToLocalChecked() )->Uint32Value();
     if (!colorsCount) colorsCount = 5;
 
-    int debug          = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    int ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
+    int debug          = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
+    int ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
     if (debug) printf( "debug: on\n" );
     if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
@@ -825,11 +839,11 @@ NAN_METHOD(QuantizeColors) {
             if (debug) printf("warning: %s\n", message.c_str());
         }
         else {
-            return NanThrowError(message.c_str());
+            return Nan::ThrowError(message.c_str());
         }
     }
     catch (...) {
-        return NanThrowError("unhandled error");
+        return Nan::ThrowError("unhandled error");
     }
 
     ssize_t rows = 196; ssize_t columns = 196;
@@ -864,13 +878,13 @@ NAN_METHOD(QuantizeColors) {
         if (index >= colorsCount) break;
     }
 
-    Handle<Object> out = NanNew<Array>();
+    Handle<Object> out = Nan::New<Array>();
 
     for(int x = 0; x < colorsCount; x++)
         if (debug) printf("found rgb : %d %d %d\n", ((int) colors[x].red) / 255, ((int) colors[x].green) / 255, ((int) colors[x].blue) / 255);
 
     for(int x = 0; x < colorsCount; x++) {
-        Local<Object> color = NanNew<Object>();
+        Local<Object> color = Nan::New<Object>();
 
         int r = ((int) colors[x].red) / 255;
         if (r > 255) r = 255;
@@ -881,20 +895,20 @@ NAN_METHOD(QuantizeColors) {
         int b = ((int) colors[x].blue) / 255;
         if (b > 255) b = 255;
 
-        color->Set(NanNew<String>("r"), NanNew<Integer>(r));
-        color->Set(NanNew<String>("g"), NanNew<Integer>(g));
-        color->Set(NanNew<String>("b"), NanNew<Integer>(b));
+        color->Set(Nan::New<String>("r").ToLocalChecked(), Nan::New<Integer>(r));
+        color->Set(Nan::New<String>("g").ToLocalChecked(), Nan::New<Integer>(g));
+        color->Set(Nan::New<String>("b").ToLocalChecked(), Nan::New<Integer>(b));
 
         char hexcol[16];
         snprintf(hexcol, sizeof hexcol, "%02x%02x%02x", r, g, b);
-        color->Set(NanNew<String>("hex"), NanNew<String>(hexcol));
+        color->Set(Nan::New<String>("hex").ToLocalChecked(), Nan::New<String>(hexcol).ToLocalChecked());
 
         out->Set(x, color);
     }
 
     delete[] colors;
 
-    NanReturnValue(out);
+    info.GetReturnValue().Set(out);
 }
 
 void DoComposite(uv_work_t* req) {
@@ -949,7 +963,7 @@ void DoComposite(uv_work_t* req) {
 }
 
 // input
-//   args[ 0 ]: options. required, object with following key,values
+//   info[ 0 ]: options. required, object with following key,values
 //              {
 //                  srcData:        required. Buffer with binary image data
 //                  compositeData:  required. Buffer with image to composite
@@ -959,34 +973,34 @@ void DoComposite(uv_work_t* req) {
 //                                  SouthWestGravity WestGravity
 //                  debug:          optional. 1 or 0
 //              }
-//   args[ 1 ]: callback. optional, if present runs async and returns result with callback(error, buffer)
+//   info[ 1 ]: callback. optional, if present runs async and returns result with callback(error, buffer)
 NAN_METHOD(Composite) {
-    NanScope();
+	Nan::HandleScope();
 
-    bool isSync = (args.Length() == 1);
+    bool isSync = (info.Length() == 1);
 
-    if ( args.Length() < 1 ) {
-        return NanThrowError("composite() requires 1 (option) argument!");
+    if ( info.Length() < 1 ) {
+        return Nan::ThrowError("composite() requires 1 (option) argument!");
     }
-    Local<Object> obj = Local<Object>::Cast( args[ 0 ] );
+    Local<Object> obj = Local<Object>::Cast( info[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( NanNew<String>("srcData") ) );
+    Local<Object> srcData = Local<Object>::Cast( obj->Get( Nan::New<String>("srcData").ToLocalChecked() ) );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
-        return NanThrowError("composite()'s 1st argument should have \"srcData\" key with a Buffer instance");
+        return Nan::ThrowError("composite()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    Local<Object> compositeData = Local<Object>::Cast( obj->Get( NanNew<String>("compositeData") ) );
+    Local<Object> compositeData = Local<Object>::Cast( obj->Get( Nan::New<String>("compositeData").ToLocalChecked() ) );
     if ( compositeData->IsUndefined() || ! Buffer::HasInstance(compositeData) ) {
-        return NanThrowError("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
+        return Nan::ThrowError("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
     }
 
-    if( ! isSync && ! args[ 1 ]->IsFunction() ) {
-        return NanThrowError("composite()'s 2nd argument should be a function");
+    if( ! isSync && ! info[ 1 ]->IsFunction() ) {
+        return Nan::ThrowError("composite()'s 2nd argument should be a function");
     }
 
     composite_im_ctx* context = new composite_im_ctx();
-    context->debug = obj->Get( NanNew<String>("debug") )->Uint32Value();
-    context->ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
+    context->debug = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
+    context->ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
 
     context->srcData = Buffer::Data(srcData);
     context->length = Buffer::Length(srcData);
@@ -994,18 +1008,18 @@ NAN_METHOD(Composite) {
     context->compositeData = Buffer::Data(compositeData);
     context->compositeLength = Buffer::Length(compositeData);
 
-    Local<Value> gravityValue = obj->Get( NanNew<String>("gravity") );
+    Local<Value> gravityValue = obj->Get( Nan::New<String>("gravity").ToLocalChecked() );
     context->gravity = !gravityValue->IsUndefined() ?
-         *NanAsciiString(gravityValue) : "";
+         *String::Utf8Value(gravityValue) : "";
 
     uv_work_t* req = new uv_work_t();
     req->data = context;
     if(!isSync) {
-        context->callback = new NanCallback(Local<Function>::Cast(args[1]));
+        context->callback = new Nan::Callback(Local<Function>::Cast(info[1]));
 
         uv_queue_work(uv_default_loop(), req, DoComposite, (uv_after_work_cb)GeneratedBlobAfter);
 
-        NanReturnUndefined();
+        return;
     } else {
         DoComposite(req);
         RETURN_BLOB_OR_ERROR(req)
@@ -1013,34 +1027,34 @@ NAN_METHOD(Composite) {
 }
 
 NAN_METHOD(Version) {
-    NanScope();
+	Nan::HandleScope();
 
-    NanReturnValue(NanNew<String>(MagickLibVersionText));
+    info.GetReturnValue().Set(Nan::New<String>(MagickLibVersionText).ToLocalChecked());
 }
 
 NAN_METHOD(GetQuantumDepth) {
-    NanScope();
+	Nan::HandleScope();
 
-    NanReturnValue(NanNew<Integer>(MAGICKCORE_QUANTUM_DEPTH));
+    info.GetReturnValue().Set(Nan::New<Integer>(MAGICKCORE_QUANTUM_DEPTH));
 }
 
 void init(Handle<Object> exports) {
 #if NODE_MODULE_VERSION >= 14
-    NODE_SET_METHOD(exports, "convert", Convert);
-    NODE_SET_METHOD(exports, "identify", Identify);
-    NODE_SET_METHOD(exports, "quantizeColors", QuantizeColors);
-    NODE_SET_METHOD(exports, "composite", Composite);
-    NODE_SET_METHOD(exports, "version", Version);
-    NODE_SET_METHOD(exports, "getConstPixels", GetConstPixels);
-    NODE_SET_METHOD(exports, "quantumDepth", GetQuantumDepth); // QuantumDepth is already defined
+	Nan::SetMethod(exports, "convert", Convert);
+	Nan::SetMethod(exports, "identify", Identify);
+	Nan::SetMethod(exports, "quantizeColors", QuantizeColors);
+	Nan::SetMethod(exports, "composite", Composite);
+	Nan::SetMethod(exports, "version", Version);
+	Nan::SetMethod(exports, "getConstPixels", GetConstPixels);
+	Nan::SetMethod(exports, "quantumDepth", GetQuantumDepth); // QuantumDepth is already defined
 #else
-    exports->Set(NanNew<String>("convert"), FunctionTemplate::New(Convert)->GetFunction());
-    exports->Set(NanNew<String>("identify"), FunctionTemplate::New(Identify)->GetFunction());
-    exports->Set(NanNew<String>("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
-    exports->Set(NanNew<String>("composite"), FunctionTemplate::New(Composite)->GetFunction());
-    exports->Set(NanNew<String>("version"), FunctionTemplate::New(Version)->GetFunction());
-    exports->Set(NanNew<String>("getConstPixels"), FunctionTemplate::New(GetConstPixels)->GetFunction());
-    exports->Set(NanNew<String>("quantumDepth"), FunctionTemplate::New(GetQuantumDepth)->GetFunction());
+    exports->Set(Nan::New<String>("convert").ToLocalChecked(), FunctionTemplate::New(Convert)->GetFunction());
+    exports->Set(Nan::New<String>("identify").ToLocalChecked(), FunctionTemplate::New(Identify)->GetFunction());
+    exports->Set(Nan::New<String>("quantizeColors").ToLocalChecked(), FunctionTemplate::New(QuantizeColors)->GetFunction());
+    exports->Set(Nan::New<String>("composite").ToLocalChecked(), FunctionTemplate::New(Composite)->GetFunction());
+    exports->Set(Nan::New<String>("version").ToLocalChecked(), FunctionTemplate::New(Version)->GetFunction());
+    exports->Set(Nan::New<String>("getConstPixels").ToLocalChecked(), FunctionTemplate::New(GetConstPixels)->GetFunction());
+    exports->Set(Nan::New<String>("quantumDepth").ToLocalChecked(), FunctionTemplate::New(GetQuantumDepth)->GetFunction());
 #endif
 }
 

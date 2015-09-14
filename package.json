@@ -24,7 +24,7 @@
     "node": "*"
   },
   "dependencies": {
-    "nan": "~1.7.0",
+    "nan": "^2.0.9",
     "readable-stream": "*"
   },
   "devDependencies": {
