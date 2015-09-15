@@ -1042,7 +1042,6 @@ NAN_METHOD(GetQuantumDepth) {
 }
 
 void init(Handle<Object> exports) {
-#if NODE_MODULE_VERSION >= 14
     Nan::SetMethod(exports, "convert", Convert);
     Nan::SetMethod(exports, "identify", Identify);
     Nan::SetMethod(exports, "quantizeColors", QuantizeColors);
@@ -1050,15 +1049,6 @@ void init(Handle<Object> exports) {
     Nan::SetMethod(exports, "version", Version);
     Nan::SetMethod(exports, "getConstPixels", GetConstPixels);
     Nan::SetMethod(exports, "quantumDepth", GetQuantumDepth); // QuantumDepth is already defined
-#else
-    exports->Set(Nan::New<String>("convert").ToLocalChecked(), FunctionTemplate::New(Convert)->GetFunction());
-    exports->Set(Nan::New<String>("identify").ToLocalChecked(), FunctionTemplate::New(Identify)->GetFunction());
-    exports->Set(Nan::New<String>("quantizeColors").ToLocalChecked(), FunctionTemplate::New(QuantizeColors)->GetFunction());
-    exports->Set(Nan::New<String>("composite").ToLocalChecked(), FunctionTemplate::New(Composite)->GetFunction());
-    exports->Set(Nan::New<String>("version").ToLocalChecked(), FunctionTemplate::New(Version)->GetFunction());
-    exports->Set(Nan::New<String>("getConstPixels").ToLocalChecked(), FunctionTemplate::New(GetConstPixels)->GetFunction());
-    exports->Set(Nan::New<String>("quantumDepth").ToLocalChecked(), FunctionTemplate::New(GetQuantumDepth)->GetFunction());
-#endif
 }
 
 // There is no semi-colon after NODE_MODULE as it's not a function (see node.h).
