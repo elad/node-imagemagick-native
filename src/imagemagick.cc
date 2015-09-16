@@ -77,6 +77,8 @@ struct identify_im_ctx : im_ctx_base {
 struct convert_im_ctx : im_ctx_base {
     unsigned int maxMemory;
 
+    unsigned int xoffset;
+    unsigned int yoffset;
     unsigned int width;
     unsigned int height;
     bool strip;
@@ -375,6 +377,31 @@ void DoConvert(uv_work_t* req) {
                 return;
             }
         }
+        else if ( strcmp ( resizeStyle, "crop" ) == 0 ) {
+            unsigned int xoffset = context->xoffset;
+            unsigned int yoffset = context->yoffset;
+
+            if ( ! xoffset ) { xoffset = 0; }
+            if ( ! yoffset ) { yoffset = 0; }
+
+            // limit canvas size to cropGeometry
+            if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
+            Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
+
+            Magick::Color transparent( "transparent" );
+            if ( strcmp( context->format.c_str(), "PNG" ) == 0 ) {
+                // make background transparent for PNG
+                // JPEG background becomes black if set transparent here
+                transparent.alpha( 1. );
+            }
+
+            #if MagickLibVersion > 0x654
+                image.extent( cropGeometry, transparent );
+            #else
+                image.extent( cropGeometry );
+            #endif
+
+        }
         else {
             context->error = std::string("resizeStyle not supported");
             return;
@@ -459,7 +486,9 @@ void GeneratedBlobAfter(uv_work_t* req) {
 //                  trimFuzz:    optional. [0-1) float, default 0. trimmed color distance to edge color, 0 is exact.
 //                  width:       optional. px.
 //                  height:      optional. px.
-//                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill"
+//                  xoffset:     optional. px.
+//                  yoffset:     optional. px.
+//                  resizeStyle: optional. default: "aspectfill". can be "aspectfit", "fill", "crop"
 //                  gravity:     optional. default: "Center". used when resizeStyle is "aspectfill"
 //                                         can be "NorthWest", "North", "NorthEast", "West",
 //                                         "Center", "East", "SouthWest", "South", "SouthEast", "None"
@@ -501,6 +530,8 @@ NAN_METHOD(Convert) {
     context->debug = obj->Get( NanNew<String>("debug") )->Uint32Value();
     context->ignoreWarnings = obj->Get( NanNew<String>("ignoreWarnings") )->Uint32Value();
     context->maxMemory = obj->Get( NanNew<String>("maxMemory") )->Uint32Value();
+    context->xoffset = obj->Get( NanNew<String>("xoffset") )->Uint32Value();
+    context->yoffset = obj->Get( NanNew<String>("yoffset") )->Uint32Value();
     context->width = obj->Get( NanNew<String>("width") )->Uint32Value();
     context->height = obj->Get( NanNew<String>("height") )->Uint32Value();
     context->quality = obj->Get( NanNew<String>("quality") )->Uint32Value();
