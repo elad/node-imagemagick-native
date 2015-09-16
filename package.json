@@ -21,11 +21,10 @@
     "install": "node-gyp rebuild"
   },
   "engines": {
-    "node": "*"
+    "node": ">=0.10.0"
   },
   "dependencies": {
-    "nan": "~1.7.0",
-    "readable-stream": "*"
+    "nan": "~1.7.0"
   },
   "devDependencies": {
     "tap": "*",
