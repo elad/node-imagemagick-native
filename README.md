@@ -8,7 +8,7 @@ Features
   * Async, sync, and stream API
   * Support for `convert`, `identify`, `composite`, and other utility functions
 
-[![Build Status](https://travis-ci.org/mash/node-imagemagick-native.png)](https://travis-ci.org/mash/node-imagemagick-native)
+[![Build Status](https://travis-ci.org/elad/node-imagemagick-native.png)](https://travis-ci.org/elad/node-imagemagick-native)
 
 Table of contents
 
