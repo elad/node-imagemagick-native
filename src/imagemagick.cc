@@ -93,7 +93,10 @@ struct convert_im_ctx : im_ctx_base {
     int flip;
 
     std::string srcFormat;
-
+    
+    unsigned int originWidth;
+    unsigned int originHeight;
+    
     convert_im_ctx() {}
 };
 // Extra context for composite
@@ -171,7 +174,12 @@ void DoConvert(uv_work_t* req) {
     Magick::Blob srcBlob( context->srcData, context->length );
 
     Magick::Image image;
-
+    
+    // set original image size if provided.
+    if(context->originWidth !=0 || context->originHeight !=0){
+        image.size(Magick::Geometry(context->originWidth,context->originHeight));
+    }
+    
     if ( !ReadImageMagick(&image, srcBlob, context->srcFormat, context) )
         return;
 
@@ -507,6 +515,8 @@ NAN_METHOD(Convert) {
     context->rotate = obj->Get( NanNew<String>("rotate") )->Int32Value();
     context->flip = obj->Get( NanNew<String>("flip") )->Uint32Value();
     context->density = obj->Get( NanNew<String>("density") )->Int32Value();
+    context->originWidth = obj->Get( NanNew<String>("originWidth") )->Uint32Value();
+    context->originHeight = obj->Get( NanNew<String>("originHeight") )->Uint32Value();
 
     Local<Value> trimValue = obj->Get( NanNew<String>("trim") );
     if ( (context->trim = ! trimValue->IsUndefined() && trimValue->BooleanValue()) ) {
