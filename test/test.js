@@ -133,6 +133,17 @@ test( 'convert blur', function (t) {
     t.end();
 });
 
+test( 'convert grayscale', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "test.jpg" ),
+        grayscale: true,
+        debug: debug
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    saveToFileIfDebug( buffer, "out.png-grayscale.jpg" );
+    t.end();
+});
+
 test( 'convert strip', function (t) {
     var buffer = imagemagick.convert({
         srcData: require('fs').readFileSync( "test.png" ),
