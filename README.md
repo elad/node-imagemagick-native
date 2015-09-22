@@ -153,6 +153,8 @@ The `options` argument can have following values:
         srcData:        required. Buffer with binary image data
         srcFormat:      optional. force source format if not detected (e.g. 'ICO'), one of http://www.imagemagick.org/script/formats.php
         quality:        optional. 1-100 integer, default 75. JPEG/MIFF/PNG compression level.
+        crop:           optional. Format: "WIDTHxHEIGHT+offsetX+offsetY". Offsets are optional.
+                        Crops area of the image using specified geometry. Applied before trim, resize and filters.
         trim:           optional. default: false. trims edges that are the background color.
         trimFuzz:       optional. [0-1) float, default 0. trimmed color distance to edge color, 0 is exact.
         width:          optional. px.
