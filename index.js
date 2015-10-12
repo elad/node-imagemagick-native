@@ -5,10 +5,6 @@ module.exports = require(__dirname + '/build/Release/imagemagick.node');
 var stream = require('stream');
 var util = require('util');
 
-// node v0.10+ use native Transform, else polyfill
-var Transform = stream.Transform ||
-  require('readable-stream').Transform;
-
 function Convert(options) {
   // allow use without new
   if (!(this instanceof Convert)) {
@@ -19,9 +15,9 @@ function Convert(options) {
   this._bufs = [];
 
   // init Transform
-  Transform.call(this, options);
+  stream.Transform.call(this, options);
 }
-util.inherits(Convert, Transform);
+util.inherits(Convert, stream.Transform);
 
 Convert.prototype._transform = function (chunk, enc, done) {
   this._bufs.push(chunk);
