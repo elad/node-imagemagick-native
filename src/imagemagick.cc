@@ -1025,7 +1025,6 @@ NAN_METHOD(GetQuantumDepth) {
 }
 
 void init(Handle<Object> exports) {
-#if NODE_MODULE_VERSION >= 14
     NODE_SET_METHOD(exports, "convert", Convert);
     NODE_SET_METHOD(exports, "identify", Identify);
     NODE_SET_METHOD(exports, "quantizeColors", QuantizeColors);
@@ -1033,15 +1032,6 @@ void init(Handle<Object> exports) {
     NODE_SET_METHOD(exports, "version", Version);
     NODE_SET_METHOD(exports, "getConstPixels", GetConstPixels);
     NODE_SET_METHOD(exports, "quantumDepth", GetQuantumDepth); // QuantumDepth is already defined
-#else
-    exports->Set(NanNew<String>("convert"), FunctionTemplate::New(Convert)->GetFunction());
-    exports->Set(NanNew<String>("identify"), FunctionTemplate::New(Identify)->GetFunction());
-    exports->Set(NanNew<String>("quantizeColors"), FunctionTemplate::New(QuantizeColors)->GetFunction());
-    exports->Set(NanNew<String>("composite"), FunctionTemplate::New(Composite)->GetFunction());
-    exports->Set(NanNew<String>("version"), FunctionTemplate::New(Version)->GetFunction());
-    exports->Set(NanNew<String>("getConstPixels"), FunctionTemplate::New(GetConstPixels)->GetFunction());
-    exports->Set(NanNew<String>("quantumDepth"), FunctionTemplate::New(GetQuantumDepth)->GetFunction());
-#endif
 }
 
 // There is no semi-colon after NODE_MODULE as it's not a function (see node.h).
