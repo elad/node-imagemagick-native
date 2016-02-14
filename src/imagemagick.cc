@@ -107,11 +107,9 @@ struct composite_im_ctx : im_ctx_base {
 };
 
 
-void wrap_pointer_cb(char *data, void *hint) {}
-
 inline Local<Value> WrapPointer(char *ptr, size_t length) {
     Nan::EscapableHandleScope scope;
-    return scope.Escape(Nan::NewBuffer(ptr, length, wrap_pointer_cb, NULL).ToLocalChecked());
+    return scope.Escape(Nan::CopyBuffer(ptr, length).ToLocalChecked());
 }
 inline Local<Value> WrapPointer(char *ptr) {
     return WrapPointer(ptr, 0);
