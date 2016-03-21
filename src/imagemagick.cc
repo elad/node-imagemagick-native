@@ -2,7 +2,7 @@
 #define BUILDING_NODE_EXTENSION
 #endif  // BUILDING_NODE_EXTENSION
 
-#if _MSC_VER
+#if _MSC_VER && _MSC_VER < 1900
 #define snprintf _snprintf
 #endif
 
