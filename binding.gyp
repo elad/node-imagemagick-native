@@ -43,7 +43,7 @@
             '_SSIZE_T_',
           ]
         }],
-        ['OSX_VER == "10.9" or OSX_VER == "10.10" or OSX_VER == "10.11"', {
+        ['OSX_VER == "10.9" or OSX_VER == "10.10" or OSX_VER == "10.11" or OSX_VER == "10.12"', {
           'xcode_settings': {
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
             'OTHER_CFLAGS': [
