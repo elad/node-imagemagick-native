@@ -87,6 +87,7 @@ struct convert_im_ctx : im_ctx_base {
     std::string format;
     std::string filter;
     std::string blur;
+    std::string background;
     unsigned int quality;
     int rotate;
     int density;
@@ -178,6 +179,25 @@ void DoConvert(uv_work_t* req) {
     Magick::Blob srcBlob( context->srcData, context->length );
 
     Magick::Image image;
+
+    if ( ! context->background.empty() ) {
+        const char* background = context->background.c_str();
+        try {
+            Magick::Color bg(background);
+            image.backgroundColor(bg);
+            if (debug) printf( "set background: %s\n", background );
+        }
+        catch (std::exception& err) {
+            std::string message = "image.backgroundColor failed with error: ";
+            message            += err.what();
+            context->error = message;
+            return;
+        }
+        catch (...) {
+            context->error = std::string("unhandled error");
+            return;
+        }
+    }
 
     if ( !ReadImageMagick(&image, srcBlob, context->srcFormat, context) )
         return;
@@ -382,6 +402,58 @@ void DoConvert(uv_work_t* req) {
                 return;
             }
         }
+        else if ( strcmp ( resizeStyle, "aspectwithbg" ) == 0 ) {
+            // keep aspect ratio, get the maximum image which fits inside specified size
+            char geometryString[ 32 ];
+            sprintf( geometryString, "%dx%d", width, height );
+            if (debug) printf( "resize to: %s\n", geometryString );
+
+            Magick::Image compositeImage(image);
+            try {
+                compositeImage.zoom( geometryString );
+            }
+            catch (std::exception& err) {
+                std::string message = "image.resize failed with error: ";
+                message            += err.what();
+                context->error = message;
+                return;
+            }
+            catch (...) {
+                context->error = std::string("unhandled error");
+                return;
+            }
+
+            sprintf( geometryString, "%dx%d!", width, height );
+            if (debug) printf( "set background to: %s\n", geometryString );
+            try {
+                image.erase();
+                image.zoom( geometryString );
+            }
+            catch (std::exception& err) {
+                std::string message = "image.initialize failed with error: ";
+                message            += err.what();
+                context->error = message;
+                return;
+            }
+            catch (...) {
+                context->error = std::string("unhandled error");
+                return;
+            }
+
+            try {
+                image.composite(compositeImage, Magick::CenterGravity, Magick::OverCompositeOp);
+            }
+            catch (std::exception& err) {
+                std::string message = "image.composite failed with error: ";
+                message            += err.what();
+                context->error = message;
+                return;
+            }
+            catch (...) {
+                context->error = std::string("unhandled error");
+                return;
+            }
+        }
         else {
             context->error = std::string("resizeStyle not supported");
             return;
@@ -555,6 +627,10 @@ NAN_METHOD(Convert) {
     Local<Value> filterValue = obj->Get( Nan::New<String>("filter").ToLocalChecked() );
     context->filter = !filterValue->IsUndefined() ?
         *String::Utf8Value(filterValue) : "";
+
+    Local<Value> backgroundValue = obj->Get( Nan::New<String>("background").ToLocalChecked() );
+    context->background = !backgroundValue->IsUndefined() ?
+        *String::Utf8Value(backgroundValue) : "";
 
     uv_work_t* req = new uv_work_t();
     req->data = context;
