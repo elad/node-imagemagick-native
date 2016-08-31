@@ -87,6 +87,7 @@ struct convert_im_ctx : im_ctx_base {
     std::string format;
     std::string filter;
     std::string blur;
+    std::string background;
     unsigned int quality;
     int rotate;
     int density;
@@ -181,6 +182,22 @@ void DoConvert(uv_work_t* req) {
 
     if ( !ReadImageMagick(&image, srcBlob, context->srcFormat, context) )
         return;
+
+    if (!context->background.empty()) {
+        try {
+            Magick::Color bg(context->background.c_str());
+            Magick::Image background(image.size(), bg);
+
+            if (debug) {
+                printf("background: %s\n", static_cast<std::string>(bg).c_str());
+            }
+
+            background.composite(image, Magick::ForgetGravity, Magick::OverCompositeOp);
+            image.composite(background, Magick::ForgetGravity, Magick::CopyCompositeOp);
+        } catch ( Magick::WarningOption &warning ){
+            if (debug) printf("Warning: %s\n", warning.what());
+        }
+    }
 
     if (debug) printf("original width,height: %d, %d\n", (int) image.columns(), (int) image.rows());
 
@@ -555,6 +572,10 @@ NAN_METHOD(Convert) {
     Local<Value> filterValue = obj->Get( Nan::New<String>("filter").ToLocalChecked() );
     context->filter = !filterValue->IsUndefined() ?
         *String::Utf8Value(filterValue) : "";
+
+    Local<Value> backgroundValue = obj->Get( Nan::New<String>("background").ToLocalChecked() );
+    context->background = !backgroundValue->IsUndefined() ?
+        *String::Utf8Value(backgroundValue) : "";
 
     uv_work_t* req = new uv_work_t();
     req->data = context;
