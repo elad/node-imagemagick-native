@@ -192,8 +192,8 @@ void DoConvert(uv_work_t* req) {
                 printf("background: %s\n", static_cast<std::string>(bg).c_str());
             }
 
-            background.composite(image, Magick::CenterGravity, Magick::OverCompositeOp);
-            image.composite(background, Magick::CenterGravity, Magick::CopyCompositeOp);
+            background.composite(image, Magick::ForgetGravity, Magick::OverCompositeOp);
+            image.composite(background, Magick::ForgetGravity, Magick::CopyCompositeOp);
         } catch ( Magick::WarningOption &warning ){
             if (debug) printf("Warning: %s\n", warning.what());
         }

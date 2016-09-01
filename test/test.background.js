@@ -1,6 +1,6 @@
 var test        = require('tap').test
 ,   imagemagick = require('..')
-,   debug       = true
+,   debug       = false
 ;
 
 function saveToFileIfDebug (buffer, file) {
@@ -51,13 +51,10 @@ function testBackground (t, color, format) {
     t.deepEqual(pixels, [0, 16]);
 
     var buffer = imagemagick.convert({
-        srcData: srcData, // 58x66
+        srcData: srcData,
         format: format,
         background: color.name,
         quality: 100,
-        /*width: 200,
-        height: 100,
-        resizeStyle: 'aspectfill',*/
         debug: debug
     });
 
