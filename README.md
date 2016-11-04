@@ -378,7 +378,10 @@ Tested with ImageMagick 6.7.7 on CentOS 6 and Mac OS X Lion, Ubuntu 12.04 .
 
     sudo apt-get install libmagick++-dev
 
-Make sure you can find Magick++-config in your PATH.
+Make sure you can find Magick++-config in your PATH. Packages on some newer distributions, such as Ubuntu 16.04, might be missing a link into `/usr/bin`. If that is the case, do this.
+
+    sudo ln -s `ls /usr/lib/\`uname -p\`-linux-gnu/ImageMagick-*/bin-Q16/Magick++-config | head -n 1` /usr/local/bin/
+
 Then:
 
     npm install imagemagick-native
