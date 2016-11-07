@@ -15,6 +15,7 @@ Table of contents
   * [Examples](#examples)
     * [Convert formats](#example-convert) (PNG to JPEG)
     * [Blur](#example-blur)
+    * [Grayscale](#example-grayscale)
     * [Resize](#example-resize)
     * [Rotate, flip, and mirror](#example-rotate-flip-mirror)
   * [API Reference](#api)
@@ -76,6 +77,40 @@ fs.writeFileSync('after.jpg', imagemagick.convert({
 ```
 
 ![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_before.jpg 'Before blur') becomes ![alt text](http://elad.github.io/node-imagemagick-native/examples/blur_after.jpg 'After blur')
+
+*Image courtesy of [Tambako The Jaguar](https://www.flickr.com/photos/tambako/3574360498).*
+
+<a name='example-grayscale'></a>
+
+### Grayscale
+
+Grayscale image:
+
+```js
+fs.writeFileSync('after.jpg', imagemagick.convert({
+	srcData: fs.readFileSync('before.jpg'),
+	grayscale: true
+}));
+```
+
+![alt text](http://elad.github.io/node-imagemagick-native/examples/grayscale_before.jpg 'Before grayscale') becomes ![alt text](http://elad.github.io/node-imagemagick-native/examples/grayscale_after.jpg 'After grayscale')
+
+*Image courtesy of [Tambako The Jaguar](https://www.flickr.com/photos/tambako/3574360498).*
+
+<a name='example-grayscale'></a>
+
+### Grayscale
+
+Grayscale image:
+
+```js
+fs.writeFileSync('after.jpg', imagemagick.convert({
+	srcData: fs.readFileSync('before.jpg'),
+	grayscale: true
+}));
+```
+
+![alt text](http://elad.github.io/node-imagemagick-native/examples/grayscale_before.jpg 'Before grayscale') becomes ![alt text](http://elad.github.io/node-imagemagick-native/examples/grayscale_after.jpg 'After grayscale')
 
 *Image courtesy of [Tambako The Jaguar](https://www.flickr.com/photos/tambako/3574360498).*
 
@@ -168,6 +203,7 @@ The `options` argument can have following values:
         format:         optional. output format, ex: 'JPEG'. see below for candidates
         filter:         optional. resize filter. ex: 'Lagrange', 'Lanczos'.  see below for candidates
         blur:           optional. ex: 0.8
+        grayscale:      optional. true or false
         strip:          optional. default: false. strips comments out from image.
         rotate:         optional. degrees.
         flip:           optional. vertical flip, true or false.
