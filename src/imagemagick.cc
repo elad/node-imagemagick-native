@@ -92,6 +92,7 @@ struct convert_im_ctx : im_ctx_base {
     int rotate;
     int density;
     int flip;
+    bool upscale;
 
     std::string srcFormat;
 
@@ -277,15 +278,27 @@ void DoConvert(uv_work_t* req) {
         if ( ! width  ) { width  = image.columns(); }
         if ( ! height ) { height = image.rows();    }
 
+        double aspectratioExpected = (double)height / (double)width;
+
+        if ( ! context->upscale ) {
+            if(width > image.columns()) {
+                width = image.columns();
+                height = (unsigned int)( aspectratioExpected * width);
+            }
+            if(height > image.rows()) {
+                height = image.rows();
+                width = (unsigned int)( height/ aspectratioExpected);
+            }
+        }
+
         // do resize
         if ( strcmp( resizeStyle, "aspectfill" ) == 0 ) {
             // ^ : Fill Area Flag ('^' flag)
             // is not implemented in Magick++
-            // and gravity: center, extent doesnt look like working as exptected
+            // and gravity: center, extent doesn't look like working as expected
             // so we do it ourselves
 
             // keep aspect ratio, get the exact provided size, crop top/bottom or left/right if necessary
-            double aspectratioExpected = (double)height / (double)width;
             double aspectratioOriginal = (double)image.rows() / (double)image.columns();
             unsigned int xoffset = 0;
             unsigned int yoffset = 0;
@@ -534,6 +547,9 @@ NAN_METHOD(Convert) {
     context->rotate = obj->Get( Nan::New<String>("rotate").ToLocalChecked() )->Int32Value();
     context->flip = obj->Get( Nan::New<String>("flip").ToLocalChecked() )->Uint32Value();
     context->density = obj->Get( Nan::New<String>("density").ToLocalChecked() )->Int32Value();
+
+    Local<Value> upscaleValue = obj->Get( Nan::New<String>("upscale").ToLocalChecked() );
+    context->upscale = upscaleValue->IsUndefined() || upscaleValue->BooleanValue();
 
     Local<Value> trimValue = obj->Get( Nan::New<String>("trim").ToLocalChecked() );
     if ( (context->trim = ! trimValue->IsUndefined() && trimValue->BooleanValue()) ) {

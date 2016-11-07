@@ -226,6 +226,84 @@ test( 'convert jpg -> jpg aspectfit', function (t) {
     t.end();
 });
 
+
+test( 'convert aspectfill with upscale false', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "test.jpg" ),
+        width: 60,
+        height: 60,
+        resizeStyle: "aspectfill",
+        upscale: false,
+        quality: 80,
+        format: 'JPEG',
+        debug: debug
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    var info = imagemagick.identify({srcData: buffer });
+    t.equal( info.width, 58 );
+    t.equal( info.height, 58 );
+    saveToFileIfDebug( buffer, "out.aspectfill-no-upscale.jpg" );
+    t.end();
+});
+
+test( 'convert aspectfit with upscale false', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "test.jpg" ),
+        width: 160,
+        height: 80,
+        resizeStyle: "aspectfit",
+        upscale: false,
+        quality: 80,
+        format: 'JPEG',
+        debug: debug
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    var info = imagemagick.identify({srcData: buffer });
+    t.equal( info.width, 25 );
+    t.equal( info.height, 29 );
+    saveToFileIfDebug( buffer, "out.aspectfit-no-upscale.jpg" );
+    t.end();
+});
+
+test( 'convert fill with upscale false', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "test.jpg" ),
+        width: 100,
+        height: 100,
+        resizeStyle: "fill",
+        upscale: false,
+        quality: 80,
+        format: 'JPEG',
+        debug: debug
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    var info = imagemagick.identify({srcData: buffer });
+    t.equal( info.width, 58 );
+    t.equal( info.height, 58 );
+    saveToFileIfDebug( buffer, "out.fill-no-upscale.jpg" );
+    t.end();
+});
+
+test( 'convert aspectfill with upscale by height', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "test.png" ),
+        width: 500,
+        height: 1000,
+        upscale: false,
+        quality: 80,
+        format: 'png',
+        debug: debug,
+        resizeStyle: 'aspectfill',
+        gravity: 'Center'
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    var info = imagemagick.identify({srcData: buffer });
+    t.equal( info.width, 33 );
+    t.equal( info.height, 66 );
+    saveToFileIfDebug( buffer, "out.aspectfill-height-picture.png" );
+    t.end();
+});
+
 test( 'convert broken png', function (t) {
     var srcData = require('fs').readFileSync( "broken.png" )
     , buffer;
