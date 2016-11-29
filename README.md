@@ -401,6 +401,17 @@ Then:
   ```
   brew install pkgconfig
   ```
+  
+  * Docker: to run `node-gyp` properly is required `build-essential` in Devian distros or `Development Tools` in CentOS
+
+
+      sudo apt-get install build-essential
+
+       	or
+
+      sudo yum groupinstall "Development Tools"
+
+  
 
 <a name='installation-windows'></a>
 
