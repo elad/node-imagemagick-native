@@ -88,6 +88,7 @@ struct convert_im_ctx : im_ctx_base {
     std::string filter;
     std::string blur;
     std::string background;
+    Magick::ColorspaceType colorspace;
     unsigned int quality;
     int rotate;
     int density;
@@ -252,7 +253,7 @@ void DoConvert(uv_work_t* req) {
         if (debug) printf( "format: %s\n", context->format.c_str() );
         image.magick( context->format.c_str() );
     }
-
+    
     if( ! context->filter.empty() ){
         const char *filter = context->filter.c_str();
 
@@ -425,6 +426,11 @@ void DoConvert(uv_work_t* req) {
         image.density(Magick::Geometry(context->density, context->density));
     }
 
+    if( context->colorspace != Magick::UndefinedColorspace ){
+      if (debug) printf( "colorspace: %s\n", MagickCore::CommandOptionToMnemonic(MagickCore::MagickColorspaceOptions, static_cast<ssize_t>(context->colorspace)) );
+        image.colorSpace( context->colorspace );
+    }
+
     Magick::Blob dstBlob;
     try {
         image.write( &dstBlob );
@@ -576,6 +582,14 @@ NAN_METHOD(Convert) {
     Local<Value> backgroundValue = obj->Get( Nan::New<String>("background").ToLocalChecked() );
     context->background = !backgroundValue->IsUndefined() ?
         *String::Utf8Value(backgroundValue) : "";
+
+    ssize_t colorspace = -1;
+    Local<Value> colorspaceValue = obj->Get( Nan::New<String>("colorspace").ToLocalChecked() );
+    if (!colorspaceValue->IsUndefined()) {
+      colorspace = MagickCore::ParseCommandOption(MagickCore::MagickColorspaceOptions, MagickCore::MagickFalse, *String::Utf8Value(colorspaceValue));
+      if (context->debug) printf("Parsing colorspace option \"%s\" to %ld\n", *String::Utf8Value(colorspaceValue), colorspace);
+    }
+    context->colorspace = colorspace != (-1) ? (Magick::ColorspaceType) colorspace : Magick::UndefinedColorspace;
 
     uv_work_t* req = new uv_work_t();
     req->data = context;
