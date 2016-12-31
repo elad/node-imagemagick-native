@@ -81,6 +81,7 @@ struct convert_im_ctx : im_ctx_base {
     unsigned int height;
     bool strip;
     bool trim;
+    bool autoOrient;
     double trimFuzz;
     std::string resizeStyle;
     std::string gravity;
@@ -182,6 +183,10 @@ void DoConvert(uv_work_t* req) {
 
     if ( !ReadImageMagick(&image, srcBlob, context->srcFormat, context) )
         return;
+
+    if ( context->autoOrient ) {
+	image.autoOrient();
+    }
 
     if (!context->background.empty()) {
         try {
@@ -542,6 +547,9 @@ NAN_METHOD(Convert) {
 
     Local<Value> stripValue = obj->Get( Nan::New<String>("strip").ToLocalChecked() );
     context->strip = ! stripValue->IsUndefined() && stripValue->BooleanValue();
+
+    Local<Value> autoOrientValue = obj->Get( Nan::New<String>("autoOrient").ToLocalChecked() );
+    context->autoOrient = ! autoOrientValue->IsUndefined() && autoOrientValue->BooleanValue();
 
     // manage blur as string for detect is empty
     Local<Value> blurValue = obj->Get( Nan::New<String>("blur").ToLocalChecked() );
