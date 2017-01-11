@@ -807,10 +807,10 @@ NAN_METHOD(GetConstPixels) {
         Magick::PixelPacket pixel = pixels[ i ];
         Local<Object> color = Nan::New<Object>();
 
-        color->Set(Nan::New<String>("red").ToLocalChecked(),     Nan::New<Integer>(pixel.red));
-        color->Set(Nan::New<String>("green").ToLocalChecked(),   Nan::New<Integer>(pixel.green));
-        color->Set(Nan::New<String>("blue").ToLocalChecked(),    Nan::New<Integer>(pixel.blue));
-        color->Set(Nan::New<String>("opacity").ToLocalChecked(), Nan::New<Integer>(pixel.opacity));
+        color->Set(Nan::New<String>("red").ToLocalChecked(),     Nan::New<Integer>((unsigned int) pixel.red));
+        color->Set(Nan::New<String>("green").ToLocalChecked(),   Nan::New<Integer>((unsigned int) pixel.green));
+        color->Set(Nan::New<String>("blue").ToLocalChecked(),    Nan::New<Integer>((unsigned int) pixel.blue));
+        color->Set(Nan::New<String>("opacity").ToLocalChecked(), Nan::New<Integer>((unsigned int) pixel.opacity));
 
         out->Set(i, color);
     }
