@@ -9,7 +9,7 @@ memwatch.on( 'leak', function( info ) {
 memwatch.on('stats', function(stats) {
     console.log( "stats: ", stats );
 });
-var srcData = require('fs').readFileSync( "./test/test.jpg" );
+var srcData = require('fs').readFileSync( "test.jpg" );
 
 var hd = new memwatch.HeapDiff();
 

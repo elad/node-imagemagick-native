@@ -19,7 +19,7 @@ function resize (callback) {
     }, function (err,stdout,stderr) {
         assert( stdout.length > 0 );
         // console.log( "im length: "+stdout.length );
-        // require('fs').writeFileSync( "./test/out.fork.jpg", stdout, 'binary' );
+        // require('fs').writeFileSync( "out.fork.jpg", stdout, 'binary' );
         callback();
     });
 }
@@ -38,7 +38,7 @@ function resize_native (callback) {
     });
     assert( stdout.length > 0 );
     // console.log( "im_native length: "+stdout.length );
-    // require('fs').writeFileSync( "./test/out.native.jpg", stdout, 'binary' );
+    // require('fs').writeFileSync( "out.native.jpg", stdout, 'binary' );
     callback();
 }
 
