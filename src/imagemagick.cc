@@ -54,7 +54,7 @@ private:
 
 // Base context for calls shared on sync and async code paths
 struct im_ctx_base {
-	Nan::Callback * callback;
+    Nan::Callback * callback;
     std::string error;
 
     char* srcData;
@@ -563,7 +563,7 @@ NAN_METHOD(Convert) {
 
     Local<Value> formatValue = obj->Get( Nan::New<String>("format").ToLocalChecked() );
     context->format = !formatValue->IsUndefined() ?
-		*String::Utf8Value(formatValue) : "";
+        *String::Utf8Value(formatValue) : "";
 
     Local<Value> srcFormatValue = obj->Get( Nan::New<String>("srcFormat").ToLocalChecked() );
     context->srcFormat = !srcFormatValue->IsUndefined() ?
@@ -584,7 +584,7 @@ NAN_METHOD(Convert) {
 
         uv_queue_work(uv_default_loop(), req, DoConvert, (uv_after_work_cb)GeneratedBlobAfter);
 
-		return;
+        return;
     } else {
         DoConvert(req);
         RETURN_BLOB_OR_ERROR(req)
