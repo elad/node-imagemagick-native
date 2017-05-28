@@ -21,15 +21,12 @@
     "install": "node-gyp rebuild"
   },
   "engines": {
-    "node": ">=0.10.0"
+    "node": ">=4"
   },
   "dependencies": {
     "nan": "2.x"
   },
   "devDependencies": {
-    "tap": "*",
-    "grunt": "~0.4",
-    "grunt-release": "~0.7",
-    "grunt-contrib-clean": "~0.5"
+    "tap": "*"
   }
 }
