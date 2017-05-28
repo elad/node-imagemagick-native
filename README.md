@@ -167,6 +167,7 @@ The `options` argument can have following values:
                                   'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None'
         format:         optional. output format, ex: 'JPEG'. see below for candidates
         filter:         optional. resize filter. ex: 'Lagrange', 'Lanczos'.  see below for candidates
+        background:     optional. ex: "none", "transparent", "red", "green", "#F00", "#00ff00"
         blur:           optional. ex: 0.8
         strip:          optional. default: false. strips comments out from image.
         rotate:         optional. degrees.

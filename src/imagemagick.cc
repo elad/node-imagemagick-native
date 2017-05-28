@@ -9,6 +9,7 @@
 #include "imagemagick.h"
 #include <list>
 #include <sstream>
+#include <iostream>
 #include <string.h>
 #include <exception>
 
@@ -212,6 +213,19 @@ void DoConvert(uv_work_t* req) {
     Magick::Blob srcBlob( context->srcData, context->length );
 
     Magick::Image image;
+
+    if( ! context->background.empty() ){
+        try {
+            Magick::Color bg( context->background.c_str() );
+            image.backgroundColor(bg);
+            if( debug ){
+                std::cerr << "Background: " << static_cast<std::string>(bg) << std::endl;
+            }
+        }
+        catch( Magick::WarningOption &warning ){
+            std::cerr << "Warning: " << warning.what() << std::endl;
+        }
+    }
 
     if ( !ReadImageMagick(&image, srcBlob, context->srcFormat, context) )
         return;
@@ -531,6 +545,7 @@ void GeneratedBlobAfter(uv_work_t* req) {
 //                                         "Center", "East", "SouthWest", "South", "SouthEast", "None"
 //                  format:      optional. one of http://www.imagemagick.org/script/formats.php ex: "JPEG"
 //                  filter:      optional. ex: "Lagrange", "Lanczos". see ImageMagick's magick/option.c for candidates
+//                  background:  optional. ex: "none", "transparent", "red", "green", "#F00", "#00ff00"
 //                  blur:        optional. ex: 0.8
 //                  strip:       optional. default: false. strips comments out from image.
 //                  maxMemory:   optional. set the maximum width * height of an image that can reside in the pixel cache memory.
@@ -618,6 +633,10 @@ NAN_METHOD(Convert) {
     Local<Value> backgroundValue = obj->Get( Nan::New<String>("background").ToLocalChecked() );
     context->background = !backgroundValue->IsUndefined() ?
         *String::Utf8Value(backgroundValue) : "";
+
+    Local<Value> backgroundValue = obj->Get( NanNew<String>("background") );
+    context->background = !backgroundValue->IsUndefined() ?
+        *NanAsciiString(backgroundValue) : "";
 
     uv_work_t* req = new uv_work_t();
     req->data = context;
