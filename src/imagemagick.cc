@@ -54,7 +54,7 @@ private:
 
 // Base context for calls shared on sync and async code paths
 struct im_ctx_base {
-	Nan::Callback * callback;
+    Nan::Callback * callback;
     std::string error;
 
     char* srcData;
@@ -81,6 +81,7 @@ struct convert_im_ctx : im_ctx_base {
     unsigned int height;
     bool strip;
     bool trim;
+    bool autoOrient;
     double trimFuzz;
     std::string resizeStyle;
     std::string gravity;
@@ -156,6 +157,38 @@ bool ReadImageMagick(Magick::Image *image, Magick::Blob srcBlob, std::string src
         return false;
     }
     return true;
+}
+
+void autoOrient(Magick::Image *image) {
+    switch (image->orientation()) {
+        case Magick::OrientationType::UndefinedOrientation: // No orientation info
+        case Magick::OrientationType::TopLeftOrientation:
+            break;
+        case Magick::OrientationType::TopRightOrientation:
+            image->rotate(180);
+            image->flip();
+            break;
+        case Magick::OrientationType::BottomRightOrientation:
+            image->rotate(180);
+            break;
+        case Magick::OrientationType::BottomLeftOrientation:
+            image->flip();
+            break;
+        case Magick::OrientationType::LeftTopOrientation:
+            image->flip();
+            image->rotate(90);
+            break;
+        case Magick::OrientationType::RightTopOrientation:
+            image->rotate(90);
+            break;
+        case Magick::OrientationType::RightBottomOrientation:
+            image->flip();
+            image->rotate(270);
+            break;
+        case Magick::OrientationType::LeftBottomOrientation:
+            image->rotate(270);
+            break;
+    }
 }
 
 void DoConvert(uv_work_t* req) {
@@ -411,14 +444,20 @@ void DoConvert(uv_work_t* req) {
         image.quality( context->quality );
     }
 
-    if ( context->rotate ) {
-        if (debug) printf( "rotate: %d\n", context->rotate );
-        image.rotate( context->rotate );
+    if ( context->autoOrient ) {
+        if ( debug ) printf( "autoOrient\n" );
+        autoOrient(&image);
     }
+    else {
+        if ( context->rotate ) {
+            if (debug) printf( "rotate: %d\n", context->rotate );
+            image.rotate( context->rotate );
+        }
 
-    if ( context->flip ) {
-        if ( debug ) printf( "flip\n" );
-        image.flip();
+        if ( context->flip ) {
+            if ( debug ) printf( "flip\n" );
+            image.flip();
+        }
     }
 
     if (context->density) {
@@ -543,6 +582,9 @@ NAN_METHOD(Convert) {
     Local<Value> stripValue = obj->Get( Nan::New<String>("strip").ToLocalChecked() );
     context->strip = ! stripValue->IsUndefined() && stripValue->BooleanValue();
 
+    Local<Value> autoOrientValue = obj->Get( Nan::New<String>("autoOrient").ToLocalChecked() );
+    context->autoOrient = ! autoOrientValue->IsUndefined() && autoOrientValue->BooleanValue();
+
     // manage blur as string for detect is empty
     Local<Value> blurValue = obj->Get( Nan::New<String>("blur").ToLocalChecked() );
     context->blur = "";
@@ -563,7 +605,7 @@ NAN_METHOD(Convert) {
 
     Local<Value> formatValue = obj->Get( Nan::New<String>("format").ToLocalChecked() );
     context->format = !formatValue->IsUndefined() ?
-		*String::Utf8Value(formatValue) : "";
+        *String::Utf8Value(formatValue) : "";
 
     Local<Value> srcFormatValue = obj->Get( Nan::New<String>("srcFormat").ToLocalChecked() );
     context->srcFormat = !srcFormatValue->IsUndefined() ?
@@ -584,7 +626,7 @@ NAN_METHOD(Convert) {
 
         uv_queue_work(uv_default_loop(), req, DoConvert, (uv_after_work_cb)GeneratedBlobAfter);
 
-		return;
+        return;
     } else {
         DoConvert(req);
         RETURN_BLOB_OR_ERROR(req)

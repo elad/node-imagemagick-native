@@ -171,6 +171,7 @@ The `options` argument can have following values:
         strip:          optional. default: false. strips comments out from image.
         rotate:         optional. degrees.
         flip:           optional. vertical flip, true or false.
+        autoOrient:     optional. default: false. Auto rotate and flip using orientation info.
         debug:          optional. true or false
         ignoreWarnings: optional. true or false
     }
