@@ -157,6 +157,10 @@ The `options` argument can have following values:
         trimFuzz:       optional. [0-1) float, default 0. trimmed color distance to edge color, 0 is exact.
         width:          optional. px.
         height:         optional. px.
+        crop_width:     px, crop to width when specifying gravity 'Crop'
+        crop_height:    px, crop to height when specifying gravity 'Crop'
+        x_offset:       px, x offset to start cropping when specifying gravity 'Crop'
+        y_offset:       px, y offset to start cropping when specifying gravity 'Crop'
         density         optional. Integer dpi value to convert
         resizeStyle:    optional. default: 'aspectfill'. can be 'aspectfit', 'fill'
                         aspectfill: keep aspect ratio, get the exact provided size.
@@ -164,7 +168,7 @@ The `options` argument can have following values:
                         fill:       forget aspect ratio, get the exact provided size
         gravity:        optional. default: 'Center'. used to position the crop area when resizeStyle is 'aspectfill'
                                   can be 'NorthWest', 'North', 'NorthEast', 'West',
-                                  'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None'
+                                  'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None', 'Crop'
         format:         optional. output format, ex: 'JPEG'. see below for candidates
         filter:         optional. resize filter. ex: 'Lagrange', 'Lanczos'.  see below for candidates
         blur:           optional. ex: 0.8

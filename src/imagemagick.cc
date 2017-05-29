@@ -79,6 +79,11 @@ struct convert_im_ctx : im_ctx_base {
 
     unsigned int width;
     unsigned int height;
+    unsigned int x_offset;
+    unsigned int y_offset;
+    unsigned int crop_width;
+    unsigned int crop_height;
+    
     bool strip;
     bool trim;
     bool autoOrient;
@@ -276,6 +281,7 @@ void DoConvert(uv_work_t* req) {
       && strcmp("SouthEast", gravity)!=0
       && strcmp("SouthWest", gravity)!=0
       && strcmp("None", gravity)!=0
+      && strcmp("Crop", gravity)!=0
     ) {
         context->error = std::string("gravity not supported");
         return;
@@ -440,6 +446,31 @@ void DoConvert(uv_work_t* req) {
         if (debug) printf( "resized to: %d, %d\n", (int)image.columns(), (int)image.rows() );
     }
 
+    if ( strcmp ( gravity, "Crop" ) == 0 ) {
+        // limit canvas size to cropGeometry
+        unsigned int x_offset = context->x_offset;
+        unsigned int y_offset = context->y_offset;
+        
+        unsigned int crop_width = context->crop_width;
+        unsigned int crop_height = context->crop_height;
+
+        if (debug) printf( "crop to!!!!: %d, %d, %d, %d\n", crop_width, crop_height, x_offset, y_offset );
+        Magick::Geometry cropGeometry( crop_width, crop_height, x_offset, y_offset, 0, 0 );
+
+        Magick::Color transparent( "transparent" );
+        if ( strcmp( context->format.c_str(), "PNG" ) == 0 ) {
+            // make background transparent for PNG
+            // JPEG background becomes black if set transparent here
+            transparent.alpha( 1. );
+        }
+
+        #if MagickLibVersion > 0x654
+            image.extent( cropGeometry, transparent );
+        #else
+            image.extent( cropGeometry );
+        #endif
+    }
+
     if ( context->quality ) {
         if (debug) printf( "quality: %d\n", context->quality );
         image.quality( context->quality );
@@ -575,6 +606,10 @@ NAN_METHOD(Convert) {
     context->maxMemory = obj->Get( Nan::New<String>("maxMemory").ToLocalChecked() )->Uint32Value();
     context->width = obj->Get( Nan::New<String>("width").ToLocalChecked() )->Uint32Value();
     context->height = obj->Get( Nan::New<String>("height").ToLocalChecked() )->Uint32Value();
+    context->crop_width = obj->Get( Nan::New<String>("crop_width").ToLocalChecked() )->Uint32Value();
+    context->crop_height = obj->Get( Nan::New<String>("crop_height").ToLocalChecked() )->Uint32Value();
+    context->x_offset = obj->Get( Nan::New<String>("x_offset").ToLocalChecked() )->Uint32Value();
+    context->y_offset = obj->Get( Nan::New<String>("y_offset").ToLocalChecked() )->Uint32Value();
     context->quality = obj->Get( Nan::New<String>("quality").ToLocalChecked() )->Uint32Value();
     context->rotate = obj->Get( Nan::New<String>("rotate").ToLocalChecked() )->Int32Value();
     context->flip = obj->Get( Nan::New<String>("flip").ToLocalChecked() )->Uint32Value();
