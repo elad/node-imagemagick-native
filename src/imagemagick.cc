@@ -89,6 +89,7 @@ struct convert_im_ctx : im_ctx_base {
     std::string filter;
     std::string blur;
     std::string background;
+    Magick::ColorspaceType colorspace;
     unsigned int quality;
     int rotate;
     int density;
@@ -464,6 +465,11 @@ void DoConvert(uv_work_t* req) {
         image.density(Magick::Geometry(context->density, context->density));
     }
 
+    if( context->colorspace != Magick::UndefinedColorspace ){
+      if (debug) printf( "colorspace: %s\n", MagickCore::CommandOptionToMnemonic(MagickCore::MagickColorspaceOptions, static_cast<ssize_t>(context->colorspace)) );
+        image.colorSpace( context->colorspace );
+    }
+
     Magick::Blob dstBlob;
     try {
         image.write( &dstBlob );
@@ -619,6 +625,14 @@ NAN_METHOD(Convert) {
     context->background = !backgroundValue->IsUndefined() ?
         *String::Utf8Value(backgroundValue) : "";
 
+    ssize_t colorspace = -1;
+    Local<Value> colorspaceValue = obj->Get( Nan::New<String>("colorspace").ToLocalChecked() );
+    if (!colorspaceValue->IsUndefined()) {
+      colorspace = MagickCore::ParseCommandOption(MagickCore::MagickColorspaceOptions, MagickCore::MagickFalse, *String::Utf8Value(colorspaceValue));
+      if (context->debug) printf("Parsing colorspace option \"%s\" to %ld\n", *String::Utf8Value(colorspaceValue), colorspace);
+    }
+    context->colorspace = colorspace != (-1) ? (Magick::ColorspaceType) colorspace : Magick::UndefinedColorspace;
+
     uv_work_t* req = new uv_work_t();
     req->data = context;
     if(!isSync) {
@@ -683,6 +697,7 @@ void BuildIdentifyResult(uv_work_t *req, Local<Value> *argv) {
         out->Set(Nan::New<String>("height").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.rows())));
         out->Set(Nan::New<String>("depth").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.depth())));
         out->Set(Nan::New<String>("format").ToLocalChecked(), Nan::New<String>(context->image.magick().c_str()).ToLocalChecked());
+        out->Set(Nan::New<String>("colorspace").ToLocalChecked(), Nan::New<String>(MagickCore::CommandOptionToMnemonic(MagickCore::MagickColorspaceOptions, static_cast<ssize_t>(context->image.colorSpace()))).ToLocalChecked());
 
         Local<Object> out_density = Nan::New<Object>();
         Magick::Geometry density = context->image.density();

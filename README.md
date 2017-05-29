@@ -100,7 +100,7 @@ fs.writeFileSync('after_resize.jpg', imagemagick.convert({
 ```
 
 Original:
-  
+
 ![alt text](http://elad.github.io/node-imagemagick-native/examples/resize.jpg 'Original')
 
 Resized:
@@ -172,6 +172,7 @@ The `options` argument can have following values:
         rotate:         optional. degrees.
         flip:           optional. vertical flip, true or false.
         autoOrient:     optional. default: false. Auto rotate and flip using orientation info.
+        colorspace:     optional. String: Out file use that colorspace ['CMYK', 'sRGB', ...]
         debug:          optional. true or false
         ignoreWarnings: optional. true or false
     }
@@ -231,6 +232,7 @@ The method returns an object similar to:
     width: 3904,
     height: 2622,
     depth: 8,
+    colorspace: 'sRGB',
     density : {
         width : 300,
         height : 300
