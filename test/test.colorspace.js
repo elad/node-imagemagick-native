@@ -21,8 +21,6 @@ test( 'Get colorspace from identify', function (t) {
         debug: debug
     });
 
-    console.log(info)
-
     t.equal( info.colorspace, 'CMYK', 'colorspace is CMYK' );
     t.end();
 });
