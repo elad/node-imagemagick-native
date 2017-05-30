@@ -79,6 +79,8 @@ struct convert_im_ctx : im_ctx_base {
 
     unsigned int width;
     unsigned int height;
+    unsigned int xoffset;
+    unsigned int yoffset;
     bool strip;
     bool trim;
     bool autoOrient;
@@ -433,6 +435,31 @@ void DoConvert(uv_work_t* req) {
                 return;
             }
         }
+         else if ( strcmp ( resizeStyle, "crop" ) == 0 ) {
+             unsigned int xoffset = context->xoffset;
+             unsigned int yoffset = context->yoffset;
+
+             if ( ! xoffset ) { xoffset = 0; }
+             if ( ! yoffset ) { yoffset = 0; }
+
+             // limit canvas size to cropGeometry
+             if (debug) printf( "crop to: %d, %d, %d, %d\n", width, height, xoffset, yoffset );
+             Magick::Geometry cropGeometry( width, height, xoffset, yoffset, 0, 0 );
+
+             Magick::Color transparent( "transparent" );
+             if ( strcmp( context->format.c_str(), "PNG" ) == 0 ) {
+                 // make background transparent for PNG
+                 // JPEG background becomes black if set transparent here
+                 transparent.alpha( 1. );
+             }
+
+             #if MagickLibVersion > 0x654
+                 image.extent( cropGeometry, transparent );
+             #else
+                 image.extent( cropGeometry );
+             #endif
+
+         }
         else {
             context->error = std::string("resizeStyle not supported");
             return;
@@ -575,6 +602,8 @@ NAN_METHOD(Convert) {
     context->maxMemory = obj->Get( Nan::New<String>("maxMemory").ToLocalChecked() )->Uint32Value();
     context->width = obj->Get( Nan::New<String>("width").ToLocalChecked() )->Uint32Value();
     context->height = obj->Get( Nan::New<String>("height").ToLocalChecked() )->Uint32Value();
+    context->xoffset = obj->Get( Nan::New<String>("xoffset").ToLocalChecked() )->Uint32Value();
+    context->yoffset = obj->Get( Nan::New<String>("yoffset").ToLocalChecked() )->Uint32Value();
     context->quality = obj->Get( Nan::New<String>("quality").ToLocalChecked() )->Uint32Value();
     context->rotate = obj->Get( Nan::New<String>("rotate").ToLocalChecked() )->Int32Value();
     context->flip = obj->Get( Nan::New<String>("flip").ToLocalChecked() )->Uint32Value();
