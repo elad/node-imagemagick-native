@@ -162,6 +162,9 @@ The `options` argument can have following values:
                         aspectfill: keep aspect ratio, get the exact provided size.
                         aspectfit:  keep aspect ratio, get maximum image that fits inside provided size
                         fill:       forget aspect ratio, get the exact provided size
+                        crop:       no resize, get provided size with [x|y]offset
+        xoffset:        optional. default 0: when use crop resizeStyle x margin
+        yoffset:        optional. default 0: when use crop resizeStyle y margin
         gravity:        optional. default: 'Center'. used to position the crop area when resizeStyle is 'aspectfill'
                                   can be 'NorthWest', 'North', 'NorthEast', 'West',
                                   'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None'
