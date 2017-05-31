@@ -172,6 +172,7 @@ The `options` argument can have following values:
         filter:         optional. resize filter. ex: 'Lagrange', 'Lanczos'.  see below for candidates
         blur:           optional. ex: 0.8
         strip:          optional. default: false. strips comments out from image.
+        upscale:        optional. default: true. allow image upscale.
         rotate:         optional. degrees.
         flip:           optional. vertical flip, true or false.
         autoOrient:     optional. default: false. Auto rotate and flip using orientation info.
