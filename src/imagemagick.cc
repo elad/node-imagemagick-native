@@ -288,7 +288,7 @@ void DoConvert(uv_work_t* req) {
         if (debug) printf( "format: %s\n", context->format.c_str() );
         image.magick( context->format.c_str() );
     }
-
+    
     if( ! context->filter.empty() ){
         const char *filter = context->filter.c_str();
 

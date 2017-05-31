@@ -498,3 +498,18 @@ test( 'quantumDepth', function(t) {
     t.equal(q >= 8, true);
     t.end();
 });
+
+test( 'convert CMYK JPEG -> sRGB PNG', function (t) {
+    var buffer = imagemagick.convert({
+        srcData: require('fs').readFileSync( "test.CMYK.jpg" ), // 58x66
+        format: 'PNG',
+        colorspace: 'sRGB',
+        debug: debug
+    });
+    t.equal( Buffer.isBuffer(buffer), true, 'buffer is Buffer' );
+    // t.equal( buffer.length, 9545, 'converted buffer size ok' );
+    saveToFileIfDebug( buffer, "out.CMYK.to.sRGB.png" );
+    t.end();
+});
+
+
