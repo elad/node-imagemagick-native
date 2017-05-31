@@ -96,6 +96,7 @@ struct convert_im_ctx : im_ctx_base {
     int rotate;
     int density;
     int flip;
+    int grayscale;
 
     std::string srcFormat;
 
@@ -488,6 +489,12 @@ void DoConvert(uv_work_t* req) {
         }
     }
 
+    if( context->grayscale ) {
+        if ( debug ) printf( "grayscale\n");
+        image.colorSpace(Magick::GRAYColorspace);
+        image.type(Magick::GrayscaleType);
+    }
+
     if (context->density) {
         image.density(Magick::Geometry(context->density, context->density));
     }
@@ -607,6 +614,7 @@ NAN_METHOD(Convert) {
     context->quality = obj->Get( Nan::New<String>("quality").ToLocalChecked() )->Uint32Value();
     context->rotate = obj->Get( Nan::New<String>("rotate").ToLocalChecked() )->Int32Value();
     context->flip = obj->Get( Nan::New<String>("flip").ToLocalChecked() )->Uint32Value();
+    context->grayscale = obj->Get( Nan::New<String>("grayscale").ToLocalChecked() )->Uint32Value();
     context->density = obj->Get( Nan::New<String>("density").ToLocalChecked() )->Int32Value();
 
     Local<Value> trimValue = obj->Get( Nan::New<String>("trim").ToLocalChecked() );
