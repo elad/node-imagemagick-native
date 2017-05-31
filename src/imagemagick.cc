@@ -162,7 +162,7 @@ bool ReadImageMagick(Magick::Image *image, Magick::Blob srcBlob, std::string src
     return true;
 }
 
-void autoOrient(Magick::Image *image) {
+void AutoOrient(Magick::Image *image) {
     switch (image->orientation()) {
         case Magick::OrientationType::UndefinedOrientation: // No orientation info
         case Magick::OrientationType::TopLeftOrientation:
@@ -474,7 +474,7 @@ void DoConvert(uv_work_t* req) {
 
     if ( context->autoOrient ) {
         if ( debug ) printf( "autoOrient\n" );
-        autoOrient(&image);
+        AutoOrient(&image);
     }
     else {
         if ( context->rotate ) {

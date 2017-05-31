@@ -1,7 +1,9 @@
 var test        = require('tap').test
 ,   imagemagick = require('..')
-,   debug       = 1
+,   debug       = false
 ;
+
+process.chdir(__dirname);
 
 console.log("image magick's version is: " + imagemagick.version());
 var versions = imagemagick.version().split(".");
