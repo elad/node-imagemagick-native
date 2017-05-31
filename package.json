@@ -17,7 +17,7 @@
   "contributors": [],
   "main": "./index.js",
   "scripts": {
-    "test": "tap test/test.js test/test.async.js test/test.streams.js test/test.trim.js test/test.background.js test/test.auto.orient.js test/test.colorspace.js test/test.crop.js",
+    "test": "tap test/test*.js",
     "install": "node-gyp rebuild"
   },
   "engines": {
