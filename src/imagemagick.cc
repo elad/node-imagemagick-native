@@ -219,6 +219,10 @@ void DoConvert(uv_work_t* req) {
     if ( !ReadImageMagick(&image, srcBlob, context->srcFormat, context) )
         return;
 
+    if ( context->autoOrient ) {
+	image.autoOrient();
+    }
+
     if (!context->background.empty()) {
         try {
             Magick::Color bg(context->background.c_str());
