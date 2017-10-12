@@ -17,7 +17,7 @@ test( 'identify results', function (t) {
 
   info = imagemagick.identify({
     srcData: require('fs').readFileSync( 'test.ext.tga' ),
-    extHint: 'tga',
+    srcFormat: 'tga',
   });
 
   t.equal( info.width, 31, 'width is 31' );

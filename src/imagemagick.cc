@@ -61,7 +61,7 @@ struct im_ctx_base {
     size_t length;
     int debug;
     int ignoreWarnings;
-    std::string extHint;
+    std::string srcFormat;
 
     // generated blob by convert or composite
     Magick::Blob dstBlob;
@@ -97,8 +97,6 @@ struct convert_im_ctx : im_ctx_base {
     int rotate;
     int density;
     int flip;
-
-    std::string srcFormat;
 
     convert_im_ctx() {}
 };
@@ -686,8 +684,14 @@ void DoIdentify(uv_work_t* req) {
     Magick::Blob srcBlob( context->srcData, context->length );
 
     Magick::Image image;
+
+    if( ! context->srcFormat.empty() ){
+        if (context->debug) printf( "reading with format: %s\n", context->srcFormat.c_str() );
+        image.magick( context->srcFormat.c_str() );
+    }
+
     try {
-        image.read( srcBlob, Magick::Geometry(), context->extHint );
+        image.read( srcBlob );
     }
     catch (std::exception& err) {
         std::string what (err.what());
@@ -801,9 +805,9 @@ NAN_METHOD(Identify) {
     context->debug          = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
     context->ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
 
-    Local<Value> extHint = obj->Get( Nan::New<String>("extHint").ToLocalChecked() );
-    context->extHint = !extHint->IsUndefined() ?
-        *String::Utf8Value(extHint) : "";
+    Local<Value> srcFormatValue = obj->Get( Nan::New<String>("srcFormat").ToLocalChecked() );
+    context->srcFormat = !srcFormatValue->IsUndefined() ?
+        *String::Utf8Value(srcFormatValue) : "";
 
     if (context->debug) printf( "debug: on\n" );
     if (context->debug) printf( "ignoreWarnings: %d\n", context->ignoreWarnings );
