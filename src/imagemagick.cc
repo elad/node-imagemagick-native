@@ -61,6 +61,7 @@ struct im_ctx_base {
     size_t length;
     int debug;
     int ignoreWarnings;
+    std::string extHint;
 
     // generated blob by convert or composite
     Magick::Blob dstBlob;
@@ -686,7 +687,7 @@ void DoIdentify(uv_work_t* req) {
 
     Magick::Image image;
     try {
-        image.read( srcBlob );
+        image.read( srcBlob, Magick::Geometry(), context->extHint );
     }
     catch (std::exception& err) {
         std::string what (err.what());
@@ -799,6 +800,10 @@ NAN_METHOD(Identify) {
 
     context->debug          = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
     context->ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
+
+    Local<Value> extHint = obj->Get( Nan::New<String>("extHint").ToLocalChecked() );
+    context->extHint = !extHint->IsUndefined() ?
+        *String::Utf8Value(extHint) : "";
 
     if (context->debug) printf( "debug: on\n" );
     if (context->debug) printf( "ignoreWarnings: %d\n", context->ignoreWarnings );
