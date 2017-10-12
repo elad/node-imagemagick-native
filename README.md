@@ -5,7 +5,7 @@
 Features
 
   * Native bindings to the C/C++ Magick++ library
-  * Async, sync, and stream API
+  * Async, sync, stream and promises API
   * Support for `convert`, `identify`, `composite`, and other utility functions
 
 [![Build Status](https://travis-ci.org/elad/node-imagemagick-native.png)](https://travis-ci.org/elad/node-imagemagick-native)
@@ -25,6 +25,7 @@ Table of contents
     * [`getConstPixels`](#getConstPixels)
     * [`quantumDepth`](#quantumDepth)
     * [`version`](#version)
+    * [Promises](#promises)
   * [Installation](#installation)
     * [Linux / Mac OS X](#installation-unix)
     * [Windows](#installation-windows)
@@ -362,6 +363,40 @@ ex: 16
 
 Return ImageMagick's version as string.  
 ex: '6.7.7'
+
+<a name="promises"></a>
+
+## Promises
+
+The namespace promises expose functions convert, composite and identify that returns a Promise.
+
+Examples:
+
+````js
+// convert
+imagemagick.promises.convert({ /* OPTIONS */ })
+  .then(function(buff) { /* Write buffer */ })
+  .catch(function(err) { /* log err */ })
+
+// ES8
+const buff = await imagemagick.promises.convert({ /* OPTIONS */ })
+
+// composite
+imagemagick.promises.composite({ /* OPTIONS */ })
+  .then(function(buff) { /* Write buffer */ })
+  .catch(function(err) { /* log err */ })
+
+// ES8
+const buff = await imagemagick.promises.composite({ /* OPTIONS */ })
+
+// identify
+imagemagick.promises.identify({ /* OPTIONS */ })
+  .then(function(info) { /* Write buffer */ })
+  .catch(function(err) { /* log err */ })
+
+// ES8
+const info = await imagemagick.promises.identify({ /* OPTIONS */ })
+````
 
 <a name='installation'></a>
 

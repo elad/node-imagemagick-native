@@ -37,3 +37,22 @@ Convert.prototype._flush = function(done) {
 }
 
 module.exports.streams = { convert : Convert };
+
+function promisify(func) {
+  return function(options) {
+    return new Promise((resolve, reject) => {
+      func(options, function(err, buff) {
+        if (err) {
+          return reject(err);
+        }
+        resolve(buff);
+      });
+    });
+  };
+}
+
+module.exports.promises = {
+  convert: promisify(module.exports.convert),
+  identify: promisify(module.exports.identify),
+  composite: promisify(module.exports.composite),
+};
