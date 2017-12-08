@@ -191,6 +191,9 @@ void AutoOrient(Magick::Image *image) {
             image->rotate(270);
             break;
     }
+
+    // Erase orientation metadata after rotating the image to avoid double-rotation
+    image->orientation(Magick::OrientationType::UndefinedOrientation);
 }
 
 void DoConvert(uv_work_t* req) {
