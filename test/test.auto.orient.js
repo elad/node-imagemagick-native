@@ -33,7 +33,7 @@ test( 'convert autoOrient option', function (t) {
 
         var buffer = imagemagick.convert({
             srcData: fs.readFileSync( path.join(__dirname, 'orientation-suite', f) ),
-            format: 'PNG',
+            format: 'JPEG',
             autoOrient: true,
             debug: debug
         });
