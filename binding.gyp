@@ -9,7 +9,7 @@
     }],
     ['OS=="mac"', {
       'variables': {
-        # matches 10.9.X , 10.10 and outputs 10.9 , 10.10, 10.11
+        # matches 10.9.X , 10.10 and outputs 10.9, 10.10, 10.11, 10.12, 10.13
         'OSX_VER%': "<!(sw_vers | grep 'ProductVersion:' | grep -o '10.[0-9]*')",
       }
     }, {
@@ -43,7 +43,7 @@
             '_SSIZE_T_',
           ]
         }],
-        ['OSX_VER == "10.9" or OSX_VER == "10.10" or OSX_VER == "10.11" or OSX_VER == "10.12"', {
+        ['OSX_VER == "10.9" or OSX_VER == "10.10" or OSX_VER == "10.11" or OSX_VER == "10.12" or OSX_VER == "10.13"', {
           'xcode_settings': {
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
             'OTHER_CFLAGS': [
