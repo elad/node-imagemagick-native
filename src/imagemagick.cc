@@ -634,33 +634,33 @@ NAN_METHOD(Convert) {
 
     Local<Value> resizeStyleValue = obj->Get( Nan::New<String>("resizeStyle").ToLocalChecked() );
     context->resizeStyle = !resizeStyleValue->IsUndefined() ?
-        *String::Utf8Value(resizeStyleValue) : "aspectfill";
+        *Nan::Utf8String(resizeStyleValue) : "aspectfill";
 
     Local<Value> gravityValue = obj->Get( Nan::New<String>("gravity").ToLocalChecked() );
     context->gravity = !gravityValue->IsUndefined() ?
-        *String::Utf8Value(gravityValue) : "Center";
+        *Nan::Utf8String(gravityValue) : "Center";
 
     Local<Value> formatValue = obj->Get( Nan::New<String>("format").ToLocalChecked() );
     context->format = !formatValue->IsUndefined() ?
-        *String::Utf8Value(formatValue) : "";
+        *Nan::Utf8String(formatValue) : "";
 
     Local<Value> srcFormatValue = obj->Get( Nan::New<String>("srcFormat").ToLocalChecked() );
     context->srcFormat = !srcFormatValue->IsUndefined() ?
-        *String::Utf8Value(srcFormatValue) : "";
+        *Nan::Utf8String(srcFormatValue) : "";
 
     Local<Value> filterValue = obj->Get( Nan::New<String>("filter").ToLocalChecked() );
     context->filter = !filterValue->IsUndefined() ?
-        *String::Utf8Value(filterValue) : "";
+        *Nan::Utf8String(filterValue) : "";
 
     Local<Value> backgroundValue = obj->Get( Nan::New<String>("background").ToLocalChecked() );
     context->background = !backgroundValue->IsUndefined() ?
-        *String::Utf8Value(backgroundValue) : "";
+        *Nan::Utf8String(backgroundValue) : "";
 
     ssize_t colorspace = -1;
     Local<Value> colorspaceValue = obj->Get( Nan::New<String>("colorspace").ToLocalChecked() );
     if (!colorspaceValue->IsUndefined()) {
-      colorspace = MagickCore::ParseCommandOption(MagickCore::MagickColorspaceOptions, MagickCore::MagickFalse, *String::Utf8Value(colorspaceValue));
-      if (context->debug) printf("Parsing colorspace option \"%s\" to %ld\n", *String::Utf8Value(colorspaceValue), colorspace);
+      colorspace = MagickCore::ParseCommandOption(MagickCore::MagickColorspaceOptions, MagickCore::MagickFalse, *Nan::Utf8String(colorspaceValue));
+      if (context->debug) printf("Parsing colorspace option \"%s\" to %ld\n", *Nan::Utf8String(colorspaceValue), colorspace);
     }
     context->colorspace = colorspace != (-1) ? (Magick::ColorspaceType) colorspace : Magick::UndefinedColorspace;
 
@@ -810,7 +810,7 @@ NAN_METHOD(Identify) {
 
     Local<Value> srcFormatValue = obj->Get( Nan::New<String>("srcFormat").ToLocalChecked() );
     context->srcFormat = !srcFormatValue->IsUndefined() ?
-        *String::Utf8Value(srcFormatValue) : "";
+        *Nan::Utf8String(srcFormatValue) : "";
 
     if (context->debug) printf( "debug: on\n" );
     if (context->debug) printf( "ignoreWarnings: %d\n", context->ignoreWarnings );
@@ -1130,7 +1130,7 @@ NAN_METHOD(Composite) {
 
     Local<Value> gravityValue = obj->Get( Nan::New<String>("gravity").ToLocalChecked() );
     context->gravity = !gravityValue->IsUndefined() ?
-         *String::Utf8Value(gravityValue) : "";
+         *Nan::Utf8String(gravityValue) : "";
 
     uv_work_t* req = new uv_work_t();
     req->data = context;
