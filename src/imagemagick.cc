@@ -536,7 +536,8 @@ void GeneratedBlobAfter(uv_work_t* req) {
 
     Nan::TryCatch try_catch; // don't quite see the necessity of this
 
-    context->callback->Call(2, argv);
+    Nan::AsyncResource resource("GeneratedBlobAfter");
+    context->callback->Call(2, argv, &resource);
 
     delete context->callback;
 
@@ -760,7 +761,8 @@ void IdentifyAfter(uv_work_t* req) {
 
     Nan::TryCatch try_catch; // don't quite see the necessity of this
 
-    context->callback->Call(2, argv);
+    Nan::AsyncResource resource("GeneratedBlobAfter");
+    context->callback->Call(2, argv, &resource);
 
     delete context->callback;
     delete context;
