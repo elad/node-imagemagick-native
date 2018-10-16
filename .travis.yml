@@ -2,8 +2,8 @@ dist: trusty
 sudo: false
 language: node_js
 node_js:
+  - "10"
   - "8"
-  - "7"
   - "6"
   - "4"
 env:
