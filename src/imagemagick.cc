@@ -82,6 +82,7 @@ struct convert_im_ctx : im_ctx_base {
     unsigned int height;
     unsigned int xoffset;
     unsigned int yoffset;
+    unsigned int opacity;
     bool strip;
     bool trim;
     bool autoOrient;
@@ -92,6 +93,10 @@ struct convert_im_ctx : im_ctx_base {
     std::string filter;
     std::string blur;
     std::string background;
+    std::string brightness;
+    std::string contrast;
+    std::string fuzz;
+    std::string opacityColor;
     Magick::ColorspaceType colorspace;
     unsigned int quality;
     int rotate;
@@ -250,6 +255,14 @@ void DoConvert(uv_work_t* req) {
         image.strip();
     }
 
+    if (context->opacity) {
+        unsigned int opacity = context->opacity;
+        Magick::Color penColor = context->opacityColor;
+
+        if (debug) printf( "opacity: %d\n", opacity );
+        image.colorize(opacity, penColor);
+    }
+
     if ( context->trim ) {
         if (debug) printf( "trim: true\n" );
         double trimFuzz = context->trimFuzz;
@@ -303,6 +316,30 @@ void DoConvert(uv_work_t* req) {
             context->error = std::string("filter not supported");
             return;
         }
+    }
+    if( ! context->contrast.empty() && ! context->brightness.empty()) {
+        double contrast = atof (context->contrast.c_str());
+        if (debug) printf( "contrast: %.1f\n", contrast );
+        double brightness = atof (context->brightness.c_str());
+        if (debug) printf( "brightness: %.1f\n", brightness );
+        //image.blur(0, blur);
+        image.brightnessContrast(brightness, contrast);
+    }
+    else if( ! context->contrast.empty() && context->brightness.empty()) {
+        double contrast = atof (context->contrast.c_str());
+        if (debug) printf( "contrast: %.1f\n", contrast );
+        double brightness = 0.0;
+        if (debug) printf( "brightness: %.1f\n", brightness );
+        //image.blur(0, blur);
+        image.brightnessContrast(brightness, contrast);
+    }
+    else if(context->contrast.empty() && ! context->brightness.empty()) {
+        double contrast = 0.0;
+        if (debug) printf( "contrast: %.1f\n", contrast );
+        double brightness = atof (context->brightness.c_str());
+        if (debug) printf( "brightness: %.1f\n", brightness );
+        //image.blur(0, blur);
+        image.brightnessContrast(brightness, contrast);
     }
 
     if( ! context->blur.empty() ) {
@@ -601,6 +638,7 @@ NAN_METHOD(Convert) {
     context->srcData = Buffer::Data(srcData);
     context->length = Buffer::Length(srcData);
     context->debug = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
+    context->opacity = obj->Get( Nan::New<String>("opacity").ToLocalChecked() )->Uint32Value();
     context->ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
     context->maxMemory = obj->Get( Nan::New<String>("maxMemory").ToLocalChecked() )->Uint32Value();
     context->width = obj->Get( Nan::New<String>("width").ToLocalChecked() )->Uint32Value();
@@ -632,6 +670,30 @@ NAN_METHOD(Convert) {
         strs << blurD;
         context->blur = strs.str();
     }
+
+     // manage brightness as string for detect is empty
+    Local<Value> brightnessValue = obj->Get( Nan::New<String>("brightness").ToLocalChecked() );
+    context->brightness = "";
+    if ( ! brightnessValue->IsUndefined() ) {
+        double brightnessD = brightnessValue->NumberValue();
+        std::ostringstream strs;
+        strs << brightnessD;
+        context->brightness = strs.str();
+    }
+
+    // manage contrast as string for detect is empty
+    Local<Value> contrastValue = obj->Get( Nan::New<String>("contrast").ToLocalChecked() );
+    context->contrast = "";
+    if ( ! contrastValue->IsUndefined() ) {
+        double contrastD = contrastValue->NumberValue();
+        std::ostringstream strs;
+        strs << contrastD;
+        context->contrast = strs.str();
+    }
+
+    Local<Value> opacityColorValue = obj->Get( Nan::New<String>("opacityColor").ToLocalChecked() );
+        context->opacityColor = !opacityColorValue->IsUndefined() ?
+            *String::Utf8Value(opacityColorValue) : "transparent";
 
     Local<Value> resizeStyleValue = obj->Get( Nan::New<String>("resizeStyle").ToLocalChecked() );
     context->resizeStyle = !resizeStyleValue->IsUndefined() ?

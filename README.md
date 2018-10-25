@@ -174,6 +174,10 @@ The `options` argument can have following values:
         blur:           optional. ex: 0.8
         strip:          optional. default: false. strips comments out from image.
         rotate:         optional. degrees.
+        brightness:     optional. -100-100 integer.
+        contrast:       optional. -100-100 integer.
+        opacity:        optional. 0-100 integer.
+        opacityColor:   optional. String: x11color.
         flip:           optional. vertical flip, true or false.
         autoOrient:     optional. default: false. Auto rotate and flip using orientation info.
         colorspace:     optional. String: Out file use that colorspace ['CMYK', 'sRGB', ...]
