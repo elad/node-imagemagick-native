@@ -601,47 +601,34 @@ NAN_METHOD(Convert) {
     context->srcData = Buffer::Data(srcData);
     context->length = Buffer::Length(srcData);
 
-    Local<Context> _context = Nan::GetCurrentContext();
-    context->debug = Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    context->ignoreWarnings = Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    context->maxMemory = Nan::Get( obj, Nan::New<String>("maxMemory").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    context->width = Nan::Get( obj, Nan::New<String>("width").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    context->height = Nan::Get( obj, Nan::New<String>("height").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    context->xoffset = Nan::Get( obj, Nan::New<String>("xoffset").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    context->yoffset = Nan::Get( obj, Nan::New<String>("yoffset").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    context->quality = Nan::Get( obj, Nan::New<String>("quality").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    context->rotate = Nan::Get( obj, Nan::New<String>("rotate").ToLocalChecked() ).ToLocalChecked()
-        ->ToInt32(_context).ToLocalChecked()->Value();
-    context->flip = Nan::Get( obj, Nan::New<String>("flip").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    context->density = Nan::Get( obj, Nan::New<String>("density").ToLocalChecked() ).ToLocalChecked()
-        ->ToInt32(_context).ToLocalChecked()->Value();
+    context->debug = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->ignoreWarnings = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->maxMemory = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("maxMemory").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->width = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("width").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->height = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("height").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->xoffset = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("xoffset").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->yoffset = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("yoffset").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->quality = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("quality").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->rotate = Nan::To<Int32>(Nan::Get( obj, Nan::New<String>("rotate").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->flip = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("flip").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->density = Nan::To<Int32>(Nan::Get( obj, Nan::New<String>("density").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
 
     Local<Value> trimValue = Nan::Get( obj, Nan::New<String>("trim").ToLocalChecked() ).ToLocalChecked();
-    if ( (context->trim = ! trimValue->IsUndefined() && trimValue->ToBoolean(_context).ToLocalChecked()->IsTrue()) ) {
-        context->trimFuzz = Nan::Get( obj, Nan::New<String>("trimFuzz").ToLocalChecked() ).ToLocalChecked()
-            ->ToNumber(_context).ToLocalChecked()->Value() * (double) (1L << MAGICKCORE_QUANTUM_DEPTH);
+    if ( (context->trim = ! trimValue->IsUndefined() && Nan::To<Boolean>(trimValue).ToLocalChecked()->IsTrue()) ) {
+        context->trimFuzz = Nan::To<Number>(Nan::Get( obj, Nan::New<String>("trimFuzz").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value() * (double) (1L << MAGICKCORE_QUANTUM_DEPTH);
     }
 
     Local<Value> stripValue = Nan::Get( obj, Nan::New<String>("strip").ToLocalChecked() ).ToLocalChecked();
-    context->strip = ! stripValue->IsUndefined() && stripValue->ToBoolean(_context).ToLocalChecked()->IsTrue();
+    context->strip = ! stripValue->IsUndefined() && Nan::To<Boolean>(stripValue).ToLocalChecked()->IsTrue();
 
     Local<Value> autoOrientValue = Nan::Get( obj, Nan::New<String>("autoOrient").ToLocalChecked() ).ToLocalChecked();
-    context->autoOrient = ! autoOrientValue->IsUndefined() && autoOrientValue->BooleanValue(_context).FromJust();
+    context->autoOrient = ! autoOrientValue->IsUndefined() && Nan::To<Boolean>(autoOrientValue).ToLocalChecked()->IsTrue();
 
     // manage blur as string for detect is empty
     Local<Value> blurValue = Nan::Get( obj, Nan::New<String>("blur").ToLocalChecked() ).ToLocalChecked();
     context->blur = "";
     if ( ! blurValue->IsUndefined() ) {
-        double blurD = blurValue->ToNumber(_context).ToLocalChecked()->Value();
+        double blurD = Nan::To<Number>(blurValue).ToLocalChecked()->Value();
         std::ostringstream strs;
         strs << blurD;
         context->blur = strs.str();
@@ -821,11 +808,8 @@ NAN_METHOD(Identify) {
     context->srcData = Buffer::Data(srcData);
     context->length = Buffer::Length(srcData);
 
-    Local<Context> _context = Nan::GetCurrentContext();
-    context->debug = Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    context->ignoreWarnings = Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
+    context->debug = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->ignoreWarnings = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
 
     Local<Value> srcFormatValue = Nan::Get( obj, Nan::New<String>("srcFormat").ToLocalChecked() ).ToLocalChecked();
     context->srcFormat = !srcFormatValue->IsUndefined() ?
@@ -879,20 +863,13 @@ NAN_METHOD(GetConstPixels) {
         return Nan::ThrowError("getConstPixels()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    Local<Context> _context = Nan::GetCurrentContext();
-    unsigned int xValue       = Nan::Get( obj, Nan::New<String>("x").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    unsigned int yValue       = Nan::Get( obj, Nan::New<String>("y").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    unsigned int columnsValue = Nan::Get( obj, Nan::New<String>("columns").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    unsigned int rowsValue    = Nan::Get( obj, Nan::New<String>("rows").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
+    unsigned int xValue       = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("x").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    unsigned int yValue       = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("y").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    unsigned int columnsValue = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("columns").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    unsigned int rowsValue    = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("rows").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
 
-    int debug          = Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    int ignoreWarnings = Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
+    int debug          = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    int ignoreWarnings = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
     if (debug) printf( "debug: on\n" );
     if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
@@ -963,15 +940,11 @@ NAN_METHOD(QuantizeColors) {
         return Nan::ThrowError("quantizeColors()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    Local<Context> _context = Nan::GetCurrentContext();
-    int colorsCount = Nan::Get( obj, Nan::New<String>("colors").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
+    int colorsCount = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("colors").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
     if (!colorsCount) colorsCount = 5;
 
-    int debug = Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    int ignoreWarnings = Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
+    int debug = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    int ignoreWarnings = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
     if (debug) printf( "debug: on\n" );
     if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
@@ -1133,7 +1106,6 @@ NAN_METHOD(Composite) {
         return Nan::ThrowError("composite() requires 1 (option) argument!");
     }
     Local<Object> obj = Local<Object>::Cast( info[ 0 ] );
-    Local<Context> _context = Nan::GetCurrentContext();
 
     Local<Object> srcData = Local<Object>::Cast( Nan::Get( obj, Nan::New<String>("srcData").ToLocalChecked() ).ToLocalChecked() );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
@@ -1151,10 +1123,8 @@ NAN_METHOD(Composite) {
     }
 
     composite_im_ctx* context = new composite_im_ctx();
-    context->debug = Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
-    context->ignoreWarnings = Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()
-        ->ToUint32(_context).ToLocalChecked()->Value();
+    context->debug = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->ignoreWarnings = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
 
     context->srcData = Buffer::Data(srcData);
     context->length = Buffer::Length(srcData);
