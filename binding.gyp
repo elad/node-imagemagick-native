@@ -22,8 +22,8 @@
     {
       "target_name": "imagemagick",
       "sources": [ "src/imagemagick.cc" ],
-      'cflags!': [ '-fno-exceptions' ],
-      'cflags_cc!': [ '-fno-exceptions' ],
+      'cflags!': [ '-fno-exceptions','-fno-rtti' ],
+      'cflags_cc!': [ '-fno-exceptions','-fno-rtti' ],
       "include_dirs" : [
         "<!(node -e \"require('nan')\")"
       ],
@@ -46,6 +46,7 @@
         ['OSX_VER == "10.9" or OSX_VER == "10.10" or OSX_VER == "10.11" or OSX_VER == "10.12" or OSX_VER == "10.13"', {
           'xcode_settings': {
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
+            'GCC_ENABLE_CPP_RTTI': 'YES',
             'OTHER_CFLAGS': [
               '<!@(pkg-config --cflags ImageMagick++)'
             ],
@@ -67,6 +68,7 @@
         ['OS=="mac"', {
           'xcode_settings': {
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
+            'GCC_ENABLE_CPP_RTTI': 'YES',
             'OTHER_CFLAGS': [
               '<!@(pkg-config --cflags ImageMagick++)'
             ]
