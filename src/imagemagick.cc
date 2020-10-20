@@ -592,7 +592,7 @@ NAN_METHOD(Convert) {
 
     Local<Object> obj = Local<Object>::Cast( info[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( Nan::New<String>("srcData").ToLocalChecked() ) );
+    Local<Object> srcData = Local<Object>::Cast( Nan::Get( obj, Nan::New<String>("srcData").ToLocalChecked() ).ToLocalChecked() );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
         return Nan::ThrowError("convert()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
@@ -600,65 +600,66 @@ NAN_METHOD(Convert) {
     convert_im_ctx* context = new convert_im_ctx();
     context->srcData = Buffer::Data(srcData);
     context->length = Buffer::Length(srcData);
-    context->debug = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
-    context->ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
-    context->maxMemory = obj->Get( Nan::New<String>("maxMemory").ToLocalChecked() )->Uint32Value();
-    context->width = obj->Get( Nan::New<String>("width").ToLocalChecked() )->Uint32Value();
-    context->height = obj->Get( Nan::New<String>("height").ToLocalChecked() )->Uint32Value();
-    context->xoffset = obj->Get( Nan::New<String>("xoffset").ToLocalChecked() )->Uint32Value();
-    context->yoffset = obj->Get( Nan::New<String>("yoffset").ToLocalChecked() )->Uint32Value();
-    context->quality = obj->Get( Nan::New<String>("quality").ToLocalChecked() )->Uint32Value();
-    context->rotate = obj->Get( Nan::New<String>("rotate").ToLocalChecked() )->Int32Value();
-    context->flip = obj->Get( Nan::New<String>("flip").ToLocalChecked() )->Uint32Value();
-    context->density = obj->Get( Nan::New<String>("density").ToLocalChecked() )->Int32Value();
 
-    Local<Value> trimValue = obj->Get( Nan::New<String>("trim").ToLocalChecked() );
-    if ( (context->trim = ! trimValue->IsUndefined() && trimValue->BooleanValue()) ) {
-        context->trimFuzz = obj->Get( Nan::New<String>("trimFuzz").ToLocalChecked() )->NumberValue() * (double) (1L << MAGICKCORE_QUANTUM_DEPTH);
+    context->debug = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->ignoreWarnings = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->maxMemory = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("maxMemory").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->width = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("width").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->height = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("height").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->xoffset = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("xoffset").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->yoffset = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("yoffset").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->quality = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("quality").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->rotate = Nan::To<Int32>(Nan::Get( obj, Nan::New<String>("rotate").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->flip = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("flip").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->density = Nan::To<Int32>(Nan::Get( obj, Nan::New<String>("density").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+
+    Local<Value> trimValue = Nan::Get( obj, Nan::New<String>("trim").ToLocalChecked() ).ToLocalChecked();
+    if ( (context->trim = ! trimValue->IsUndefined() && Nan::To<Boolean>(trimValue).ToLocalChecked()->IsTrue()) ) {
+        context->trimFuzz = Nan::To<Number>(Nan::Get( obj, Nan::New<String>("trimFuzz").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value() * (double) (1L << MAGICKCORE_QUANTUM_DEPTH);
     }
 
-    Local<Value> stripValue = obj->Get( Nan::New<String>("strip").ToLocalChecked() );
-    context->strip = ! stripValue->IsUndefined() && stripValue->BooleanValue();
+    Local<Value> stripValue = Nan::Get( obj, Nan::New<String>("strip").ToLocalChecked() ).ToLocalChecked();
+    context->strip = ! stripValue->IsUndefined() && Nan::To<Boolean>(stripValue).ToLocalChecked()->IsTrue();
 
-    Local<Value> autoOrientValue = obj->Get( Nan::New<String>("autoOrient").ToLocalChecked() );
-    context->autoOrient = ! autoOrientValue->IsUndefined() && autoOrientValue->BooleanValue();
+    Local<Value> autoOrientValue = Nan::Get( obj, Nan::New<String>("autoOrient").ToLocalChecked() ).ToLocalChecked();
+    context->autoOrient = ! autoOrientValue->IsUndefined() && Nan::To<Boolean>(autoOrientValue).ToLocalChecked()->IsTrue();
 
     // manage blur as string for detect is empty
-    Local<Value> blurValue = obj->Get( Nan::New<String>("blur").ToLocalChecked() );
+    Local<Value> blurValue = Nan::Get( obj, Nan::New<String>("blur").ToLocalChecked() ).ToLocalChecked();
     context->blur = "";
     if ( ! blurValue->IsUndefined() ) {
-        double blurD = blurValue->NumberValue();
+        double blurD = Nan::To<Number>(blurValue).ToLocalChecked()->Value();
         std::ostringstream strs;
         strs << blurD;
         context->blur = strs.str();
     }
 
-    Local<Value> resizeStyleValue = obj->Get( Nan::New<String>("resizeStyle").ToLocalChecked() );
+    Local<Value> resizeStyleValue = Nan::Get( obj, Nan::New<String>("resizeStyle").ToLocalChecked() ).ToLocalChecked();
     context->resizeStyle = !resizeStyleValue->IsUndefined() ?
         *Nan::Utf8String(resizeStyleValue) : "aspectfill";
 
-    Local<Value> gravityValue = obj->Get( Nan::New<String>("gravity").ToLocalChecked() );
+    Local<Value> gravityValue = Nan::Get( obj, Nan::New<String>("gravity").ToLocalChecked() ).ToLocalChecked();
     context->gravity = !gravityValue->IsUndefined() ?
         *Nan::Utf8String(gravityValue) : "Center";
 
-    Local<Value> formatValue = obj->Get( Nan::New<String>("format").ToLocalChecked() );
+    Local<Value> formatValue = Nan::Get( obj, Nan::New<String>("format").ToLocalChecked() ).ToLocalChecked();
     context->format = !formatValue->IsUndefined() ?
         *Nan::Utf8String(formatValue) : "";
 
-    Local<Value> srcFormatValue = obj->Get( Nan::New<String>("srcFormat").ToLocalChecked() );
+    Local<Value> srcFormatValue = Nan::Get( obj, Nan::New<String>("srcFormat").ToLocalChecked() ).ToLocalChecked();
     context->srcFormat = !srcFormatValue->IsUndefined() ?
         *Nan::Utf8String(srcFormatValue) : "";
 
-    Local<Value> filterValue = obj->Get( Nan::New<String>("filter").ToLocalChecked() );
+    Local<Value> filterValue = Nan::Get( obj, Nan::New<String>("filter").ToLocalChecked() ).ToLocalChecked();
     context->filter = !filterValue->IsUndefined() ?
         *Nan::Utf8String(filterValue) : "";
 
-    Local<Value> backgroundValue = obj->Get( Nan::New<String>("background").ToLocalChecked() );
+    Local<Value> backgroundValue = Nan::Get( obj, Nan::New<String>("background").ToLocalChecked() ).ToLocalChecked();
     context->background = !backgroundValue->IsUndefined() ?
         *Nan::Utf8String(backgroundValue) : "";
 
     ssize_t colorspace = -1;
-    Local<Value> colorspaceValue = obj->Get( Nan::New<String>("colorspace").ToLocalChecked() );
+    Local<Value> colorspaceValue = Nan::Get( obj, Nan::New<String>("colorspace").ToLocalChecked() ).ToLocalChecked();
     if (!colorspaceValue->IsUndefined()) {
       colorspace = MagickCore::ParseCommandOption(MagickCore::MagickColorspaceOptions, MagickCore::MagickFalse, *Nan::Utf8String(colorspaceValue));
       if (context->debug) printf("Parsing colorspace option \"%s\" to %ld\n", *Nan::Utf8String(colorspaceValue), colorspace);
@@ -731,21 +732,21 @@ void BuildIdentifyResult(uv_work_t *req, Local<Value> *argv) {
         argv[0] = Nan::Undefined();
         Local<Object> out = Nan::New<Object>();
 
-        out->Set(Nan::New<String>("width").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.columns())));
-        out->Set(Nan::New<String>("height").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.rows())));
-        out->Set(Nan::New<String>("depth").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.depth())));
-        out->Set(Nan::New<String>("format").ToLocalChecked(), Nan::New<String>(context->image.magick().c_str()).ToLocalChecked());
-        out->Set(Nan::New<String>("colorspace").ToLocalChecked(), Nan::New<String>(MagickCore::CommandOptionToMnemonic(MagickCore::MagickColorspaceOptions, static_cast<ssize_t>(context->image.colorSpace()))).ToLocalChecked());
+        Nan::Set(out, Nan::New<String>("width").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.columns())));
+        Nan::Set(out, Nan::New<String>("height").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.rows())));
+        Nan::Set(out, Nan::New<String>("depth").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(context->image.depth())));
+        Nan::Set(out, Nan::New<String>("format").ToLocalChecked(), Nan::New<String>(context->image.magick().c_str()).ToLocalChecked());
+        Nan::Set(out, Nan::New<String>("colorspace").ToLocalChecked(), Nan::New<String>(MagickCore::CommandOptionToMnemonic(MagickCore::MagickColorspaceOptions, static_cast<ssize_t>(context->image.colorSpace()))).ToLocalChecked());
 
         Local<Object> out_density = Nan::New<Object>();
         Magick::Geometry density = context->image.density();
-        out_density->Set(Nan::New<String>("width").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(density.width())));
-        out_density->Set(Nan::New<String>("height").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(density.height())));
-        out->Set(Nan::New<String>("density").ToLocalChecked(), out_density);
+        Nan::Set(out_density, Nan::New<String>("width").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(density.width())));
+        Nan::Set(out_density, Nan::New<String>("height").ToLocalChecked(), Nan::New<Integer>(static_cast<int>(density.height())));
+        Nan::Set(out, Nan::New<String>("density").ToLocalChecked(), out_density);
 
         Local<Object> out_exif = Nan::New<Object>();
-        out_exif->Set(Nan::New<String>("orientation").ToLocalChecked(), Nan::New<Integer>(atoi(context->image.attribute("EXIF:Orientation").c_str())));
-        out->Set(Nan::New<String>("exif").ToLocalChecked(), out_exif);
+        Nan::Set(out_exif, Nan::New<String>("orientation").ToLocalChecked(), Nan::New<Integer>(atoi(context->image.attribute("EXIF:Orientation").c_str())));
+        Nan::Set(out, Nan::New<String>("exif").ToLocalChecked(), out_exif);
 
         argv[1] = out;
     }
@@ -794,7 +795,7 @@ NAN_METHOD(Identify) {
     }
     Local<Object> obj = Local<Object>::Cast( info[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( Nan::New<String>("srcData").ToLocalChecked() ) );
+    Local<Object> srcData = Local<Object>::Cast( Nan::Get( obj, Nan::New<String>("srcData").ToLocalChecked() ).ToLocalChecked() );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
         return Nan::ThrowError("identify()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
@@ -807,10 +808,10 @@ NAN_METHOD(Identify) {
     context->srcData = Buffer::Data(srcData);
     context->length = Buffer::Length(srcData);
 
-    context->debug          = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
-    context->ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
+    context->debug = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->ignoreWarnings = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
 
-    Local<Value> srcFormatValue = obj->Get( Nan::New<String>("srcFormat").ToLocalChecked() );
+    Local<Value> srcFormatValue = Nan::Get( obj, Nan::New<String>("srcFormat").ToLocalChecked() ).ToLocalChecked();
     context->srcFormat = !srcFormatValue->IsUndefined() ?
         *Nan::Utf8String(srcFormatValue) : "";
 
@@ -857,18 +858,18 @@ NAN_METHOD(GetConstPixels) {
     }
     Local<Object> obj = Local<Object>::Cast( info[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( Nan::New<String>("srcData").ToLocalChecked() ) );
+    Local<Object> srcData = Local<Object>::Cast( Nan::Get( obj, Nan::New<String>("srcData").ToLocalChecked() ).ToLocalChecked() );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
         return Nan::ThrowError("getConstPixels()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    unsigned int xValue       = obj->Get( Nan::New<String>("x").ToLocalChecked() )->Uint32Value();
-    unsigned int yValue       = obj->Get( Nan::New<String>("y").ToLocalChecked() )->Uint32Value();
-    unsigned int columnsValue = obj->Get( Nan::New<String>("columns").ToLocalChecked() )->Uint32Value();
-    unsigned int rowsValue    = obj->Get( Nan::New<String>("rows").ToLocalChecked() )->Uint32Value();
+    unsigned int xValue       = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("x").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    unsigned int yValue       = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("y").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    unsigned int columnsValue = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("columns").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    unsigned int rowsValue    = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("rows").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
 
-    int debug          = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
-    int ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
+    int debug          = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    int ignoreWarnings = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
     if (debug) printf( "debug: on\n" );
     if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
@@ -907,12 +908,12 @@ NAN_METHOD(GetConstPixels) {
         Magick::PixelPacket pixel = pixels[ i ];
         Local<Object> color = Nan::New<Object>();
 
-        color->Set(Nan::New<String>("red").ToLocalChecked(),     Nan::New<Integer>(pixel.red));
-        color->Set(Nan::New<String>("green").ToLocalChecked(),   Nan::New<Integer>(pixel.green));
-        color->Set(Nan::New<String>("blue").ToLocalChecked(),    Nan::New<Integer>(pixel.blue));
-        color->Set(Nan::New<String>("opacity").ToLocalChecked(), Nan::New<Integer>(pixel.opacity));
+        Nan::Set(color, Nan::New<String>("red").ToLocalChecked(),     Nan::New<Integer>(pixel.red));
+        Nan::Set(color, Nan::New<String>("green").ToLocalChecked(),   Nan::New<Integer>(pixel.green));
+        Nan::Set(color, Nan::New<String>("blue").ToLocalChecked(),    Nan::New<Integer>(pixel.blue));
+        Nan::Set(color, Nan::New<String>("opacity").ToLocalChecked(), Nan::New<Integer>(pixel.opacity));
 
-        out->Set(i, color);
+        Nan::Set(out, i, color);
     }
 
     info.GetReturnValue().Set(out);
@@ -934,16 +935,16 @@ NAN_METHOD(QuantizeColors) {
     }
     Local<Object> obj = Local<Object>::Cast( info[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( Nan::New<String>("srcData").ToLocalChecked() ) );
+    Local<Object> srcData = Local<Object>::Cast( Nan::Get( obj, Nan::New<String>("srcData").ToLocalChecked() ).ToLocalChecked() );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
         return Nan::ThrowError("quantizeColors()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    int colorsCount = obj->Get( Nan::New<String>("colors").ToLocalChecked() )->Uint32Value();
+    int colorsCount = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("colors").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
     if (!colorsCount) colorsCount = 5;
 
-    int debug          = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
-    int ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
+    int debug = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    int ignoreWarnings = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
     if (debug) printf( "debug: on\n" );
     if (debug) printf( "ignoreWarnings: %d\n", ignoreWarnings );
 
@@ -1017,15 +1018,15 @@ NAN_METHOD(QuantizeColors) {
         int b = ((int) colors[x].blue) / 255;
         if (b > 255) b = 255;
 
-        color->Set(Nan::New<String>("r").ToLocalChecked(), Nan::New<Integer>(r));
-        color->Set(Nan::New<String>("g").ToLocalChecked(), Nan::New<Integer>(g));
-        color->Set(Nan::New<String>("b").ToLocalChecked(), Nan::New<Integer>(b));
+        Nan::Set(color, Nan::New<String>("r").ToLocalChecked(), Nan::New<Integer>(r));
+        Nan::Set(color, Nan::New<String>("g").ToLocalChecked(), Nan::New<Integer>(g));
+        Nan::Set(color, Nan::New<String>("b").ToLocalChecked(), Nan::New<Integer>(b));
 
         char hexcol[16];
         snprintf(hexcol, sizeof hexcol, "%02x%02x%02x", r, g, b);
-        color->Set(Nan::New<String>("hex").ToLocalChecked(), Nan::New<String>(hexcol).ToLocalChecked());
+        Nan::Set(color, Nan::New<String>("hex").ToLocalChecked(), Nan::New<String>(hexcol).ToLocalChecked());
 
-        out->Set(x, color);
+        Nan::Set(out, x, color);
     }
 
     delete[] colors;
@@ -1106,12 +1107,13 @@ NAN_METHOD(Composite) {
     }
     Local<Object> obj = Local<Object>::Cast( info[ 0 ] );
 
-    Local<Object> srcData = Local<Object>::Cast( obj->Get( Nan::New<String>("srcData").ToLocalChecked() ) );
+    Local<Object> srcData = Local<Object>::Cast( Nan::Get( obj, Nan::New<String>("srcData").ToLocalChecked() ).ToLocalChecked() );
     if ( srcData->IsUndefined() || ! Buffer::HasInstance(srcData) ) {
         return Nan::ThrowError("composite()'s 1st argument should have \"srcData\" key with a Buffer instance");
     }
 
-    Local<Object> compositeData = Local<Object>::Cast( obj->Get( Nan::New<String>("compositeData").ToLocalChecked() ) );
+    Local<Object> compositeData = Local<Object>::Cast(
+            Nan::Get( obj, Nan::New<String>("compositeData").ToLocalChecked() ).ToLocalChecked() );
     if ( compositeData->IsUndefined() || ! Buffer::HasInstance(compositeData) ) {
         return Nan::ThrowError("composite()'s 1st argument should have \"compositeData\" key with a Buffer instance");
     }
@@ -1121,8 +1123,8 @@ NAN_METHOD(Composite) {
     }
 
     composite_im_ctx* context = new composite_im_ctx();
-    context->debug = obj->Get( Nan::New<String>("debug").ToLocalChecked() )->Uint32Value();
-    context->ignoreWarnings = obj->Get( Nan::New<String>("ignoreWarnings").ToLocalChecked() )->Uint32Value();
+    context->debug = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("debug").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
+    context->ignoreWarnings = Nan::To<Uint32>(Nan::Get( obj, Nan::New<String>("ignoreWarnings").ToLocalChecked() ).ToLocalChecked()).ToLocalChecked()->Value();
 
     context->srcData = Buffer::Data(srcData);
     context->length = Buffer::Length(srcData);
@@ -1130,7 +1132,7 @@ NAN_METHOD(Composite) {
     context->compositeData = Buffer::Data(compositeData);
     context->compositeLength = Buffer::Length(compositeData);
 
-    Local<Value> gravityValue = obj->Get( Nan::New<String>("gravity").ToLocalChecked() );
+    Local<Value> gravityValue = Nan::Get( obj, Nan::New<String>("gravity").ToLocalChecked() ).ToLocalChecked();
     context->gravity = !gravityValue->IsUndefined() ?
          *Nan::Utf8String(gravityValue) : "";
 
@@ -1160,7 +1162,7 @@ NAN_METHOD(GetQuantumDepth) {
     info.GetReturnValue().Set(Nan::New<Integer>(MAGICKCORE_QUANTUM_DEPTH));
 }
 
-void init(Handle<Object> exports) {
+void init(Local<Object> exports) {
     Nan::SetMethod(exports, "convert", Convert);
     Nan::SetMethod(exports, "identify", Identify);
     Nan::SetMethod(exports, "quantizeColors", QuantizeColors);

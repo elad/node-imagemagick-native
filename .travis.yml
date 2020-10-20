@@ -2,10 +2,10 @@ dist: trusty
 sudo: false
 language: node_js
 node_js:
+  - "14"
+  - "12"
   - "10"
   - "8"
-  - "6"
-  - "4"
 env:
   - CC=clang CXX=clang++ npm_config_clang=1
 addons:
